@@ -22,17 +22,10 @@ const ACTIVITY_LEVELS = [
   { id: "active", label: "Muito ativo", multiplier: 1.725 },
   { id: "very_active", label: "Extremamente ativo", multiplier: 1.9 }
 ];
-const GOAL_TYPES = [
-  { id: "lose", label: "Perder peso", defaultAdjustment: -500 },
-  { id: "maintain", label: "Manter peso", defaultAdjustment: 0 },
-  { id: "gain", label: "Ganhar peso", defaultAdjustment: 300 }
-];
 const DEFAULT_PROFILE = { 
   goals: null, 
   settings: { trackWeight: false, trackWater: false, trackWorkout: false },
-  biometrics: { weight: null, height: null, age: null, gender: null, activityLevel: null },
-  goalType: null,
-  calorieAdjustment: 0
+  biometrics: { weight: null, height: null, age: null, gender: null, activityLevel: null }
 };
 
 /* ---------------- helpers ---------------- */
@@ -96,30 +89,7 @@ function calculateTDEE(bmr, activityLevel) {
   return Math.round(bmr * level.multiplier);
 }
 
-function calculateTargetCalories(tdee, adjustment) {
-  if (!tdee) return null;
-  const adj = parseFloat(adjustment) || 0;
-  return Math.round(tdee + adj);
-}
 
-function getPhaseInfo(tdee, currentCalories, goalType) {
-  if (!tdee || !currentCalories) return null;
-  const diff = currentCalories - tdee;
-  
-  let phase, label;
-  if (goalType === "gain") {
-    phase = "bulking";
-    label = "Ganho de peso";
-  } else if (goalType === "lose") {
-    phase = "cutting";
-    label = "Perda de peso";
-  } else {
-    phase = "maintenance";
-    label = "Manutenção";
-  }
-  
-  return { phase, diff, label };
-}
 
 /* ---------------- storage ---------------- */
 function loadAll() {
@@ -196,7 +166,6 @@ let state = {
   importExport: { showImport: false, showExport: false, importData: "", showMealImport: false, mealImportData: "" },
   appSettings: { theme: "dark", language: "pt-BR" },
   biometricsForm: null,
-  goalForm: null,
   expandedMeals: {},
   historyPeriod: 21,
   historyView: "overview",
@@ -305,10 +274,6 @@ function upsertFood(food) { state.library = { ...state.library, [food.id]: food 
 function deleteFood(id) { const next = { ...state.library }; delete next[id]; state.library = next; persist(STORAGE_KEYS.library, next); }
 function saveGoals(goals) { state.profile = { ...state.profile, goals }; persist(STORAGE_KEYS.profile, state.profile); }
 function saveBiometrics(biometrics) { state.profile = { ...state.profile, biometrics }; persist(STORAGE_KEYS.profile, state.profile); }
-function saveGoalType(goalType, calorieAdjustment) { 
-  state.profile = { ...state.profile, goalType, calorieAdjustment }; 
-  persist(STORAGE_KEYS.profile, state.profile); 
-}
 function toggleSetting(key, val) { state.profile = { ...state.profile, settings: { ...state.profile.settings, [key]: val } }; persist(STORAGE_KEYS.profile, state.profile); }
 function resetAll() {
   persist(STORAGE_KEYS.profile, DEFAULT_PROFILE); persist(STORAGE_KEYS.library, {}); persist(STORAGE_KEYS.diary, {});
@@ -1151,31 +1116,17 @@ function ensureBiometricsForm() {
     };
   }
 }
-function ensureGoalForm() {
-  if (!state.goalForm) {
-    state.goalForm = {
-      goalType: state.profile.goalType || "",
-      calorieAdjustment: state.profile.calorieAdjustment || 0
-    };
-  }
-}
 function settingsViewHTML() {
   ensureGoalsForm();
   ensureBiometricsForm();
-  ensureGoalForm();
   
   const form = state.goalsForm;
   const bio = state.biometricsForm;
-  const goalForm = state.goalForm;
   
   const calFromMacros = (parseFloat(form.protein) || 0) * 4 + (parseFloat(form.carbs) || 0) * 4 + (parseFloat(form.fat) || 0) * 9;
   const calGoal = parseFloat(form.calories) || 0;
   const diff = calGoal ? Math.round(((calFromMacros - calGoal) / calGoal) * 100) : 0;
   const showWarn = calGoal > 0 && calFromMacros > 0 && Math.abs(diff) > 8;
-
-  const bmr = calculateBMR(bio.weight, bio.height, bio.age, bio.gender);
-  const tdee = calculateTDEE(bmr, bio.activityLevel);
-  const suggestedCalories = calculateTargetCalories(tdee, goalForm.calorieAdjustment);
 
   return `<div style="display:flex;flex-direction:column;gap:16px">
     <div class="card" style="padding:16px">
@@ -1202,48 +1153,30 @@ function settingsViewHTML() {
           ${ACTIVITY_LEVELS.map(l => `<option value="${l.id}" ${bio.activityLevel === l.id ? "selected" : ""}>${l.label} (${l.multiplier}x)</option>`).join("")}
         </select>
       </div>
-      ${bmr ? `<div style="font-size:12px;color:var(--textMuted);margin-bottom:10px">
-        <div>BMR: ${Math.round(bmr)} kcal/dia</div>
-        ${tdee ? `<div>TDEE: ${tdee} kcal/dia (manutenção)</div>` : ""}
-      </div>` : ""}
+      ${(() => {
+        const bmr = calculateBMR(bio.weight, bio.height, bio.age, bio.gender);
+        const tdee = calculateTDEE(bmr, bio.activityLevel);
+        return bmr ? `<div style="font-size:12px;color:var(--textMuted);margin-bottom:10px">
+          <div>BMR: ${Math.round(bmr)} kcal/dia</div>
+          ${tdee ? `<div>TDEE: ${tdee} kcal/dia (manutenção)</div>` : ""}
+        </div>` : "";
+      })()}
       <button class="btn btn-primary" data-action="bio-save">Salvar dados biológicos</button>
     </div>
     
     <div class="card" style="padding:16px">
-      <div style="font-weight:700;font-size:15px;margin-bottom:4px">Objetivo</div>
-      <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:12px">Define se você está em bulking, cutting ou manutenção.</div>
-      <div style="margin-bottom:10px">
-        <div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Meta principal</div>
-        <select class="input" data-action="goal-type-input">
-          <option value="">Selecione</option>
-          ${GOAL_TYPES.map(g => `<option value="${g.id}" ${goalForm.goalType === g.id ? "selected" : ""}>${g.label}</option>`).join("")}
-        </select>
-      </div>
-      <div style="margin-bottom:10px">
-        <div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Ajuste de calorias (kcal)</div>
-        <input class="input" type="number" value="${esc(goalForm.calorieAdjustment)}" data-action="goal-adjustment-input" placeholder="Ex: -500 para cutting, +300 para bulking"/>
-      </div>
-      ${tdee && goalForm.goalType ? `<div style="font-size:12px;color:var(--textMuted);margin-bottom:10px">
-        <div>Sugerido: ${suggestedCalories} kcal/dia</div>
-        <div style="font-size:11px;color:var(--textFaint)">Baseado no TDEE (${tdee}) + ajuste (${parseFloat(goalForm.calorieAdjustment) > 0 ? "+" : ""}${parseFloat(goalForm.calorieAdjustment)})</div>
-      </div>` : ""}
-      <button class="btn btn-primary" data-action="goal-type-save">Salvar objetivo</button>
-    </div>
-
-    <div class="card" style="padding:16px">
       <div style="font-weight:700;font-size:15px;margin-bottom:4px">Metas diárias</div>
-      <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:12px">Seus alvos de calorias e macronutrientes.</div>
+      <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:12px">Configure suas metas de calorias e macronutrientes.</div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px">
         <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Calorias (kcal)</div>
-          <input class="input" type="number" value="${esc(form.calories)}" data-action="goal-input" data-field="calories"/></div>
+          <input class="input" type="number" value="${esc(form.calories)}" data-action="goal-input" data-field="calories" placeholder="2000"/></div>
         <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Proteína (g)</div>
-          <input class="input" type="number" value="${esc(form.protein)}" data-action="goal-input" data-field="protein"/></div>
+          <input class="input" type="number" value="${esc(form.protein)}" data-action="goal-input" data-field="protein" placeholder="150"/></div>
         <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Carboidratos (g)</div>
-          <input class="input" type="number" value="${esc(form.carbs)}" data-action="goal-input" data-field="carbs"/></div>
+          <input class="input" type="number" value="${esc(form.carbs)}" data-action="goal-input" data-field="carbs" placeholder="200"/></div>
         <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Gordura (g)</div>
-          <input class="input" type="number" value="${esc(form.fat)}" data-action="goal-input" data-field="fat"/></div>
+          <input class="input" type="number" value="${esc(form.fat)}" data-action="goal-input" data-field="fat" placeholder="65"/></div>
       </div>
-      ${suggestedCalories ? `<button class="btn" style="margin-bottom:10px" data-action="use-suggested-calories">Usar calorias sugeridas (${suggestedCalories})</button>` : ""}
       ${calFromMacros > 0 ? `<div style="font-size:12px;color:${showWarn ? "var(--over)" : "var(--textMuted)"};display:flex;align-items:center;gap:6px;margin-bottom:10px">
         ${showWarn ? icon("alert-triangle", 13) : ""}
         Seus macros somam ${Math.round(calFromMacros)} kcal${calGoal > 0 ? ` (${diff > 0 ? "+" : ""}${diff}% da meta de calorias)` : ""}
@@ -1565,7 +1498,7 @@ root.addEventListener("click", (ev) => {
   switch (action) {
     case "set-tab":
       state.tab = el.dataset.tab;
-      if (state.tab === "metas") { state.goalsForm = null; state.biometricsForm = null; state.goalForm = null; state.goalsSaved = false; state.confirmDelete = false; }
+      if (state.tab === "metas") { state.goalsForm = null; state.biometricsForm = null; state.goalsSaved = false; state.confirmDelete = false; }
       if (state.tab === "historico") { state.selectedKey = null; }
       if (state.tab === "config") { state.importExport.showImport = false; state.importExport.showMealImport = false; }
       render();
@@ -1779,31 +1712,6 @@ root.addEventListener("click", (ev) => {
       setTimeout(() => { state.qa.msg = ""; render(); }, 1800);
       break;
     }
-    case "goal-type-save": {
-      ensureGoalForm();
-      const f = state.goalForm;
-      if (!f.goalType) break;
-      saveGoalType(f.goalType, parseFloat(f.calorieAdjustment) || 0);
-      state.qa.msg = "Objetivo salvo";
-      render();
-      setTimeout(() => { state.qa.msg = ""; render(); }, 1800);
-      break;
-    }
-    case "use-suggested-calories": {
-      ensureBiometricsForm();
-      ensureGoalForm();
-      const bio = state.biometricsForm;
-      const goalForm = state.goalForm;
-      const bmr = calculateBMR(bio.weight, bio.height, bio.age, bio.gender);
-      const tdee = calculateTDEE(bmr, bio.activityLevel);
-      const suggested = calculateTargetCalories(tdee, goalForm.calorieAdjustment);
-      if (suggested) {
-        ensureGoalsForm();
-        state.goalsForm.calories = String(suggested);
-        render();
-      }
-      break;
-    }
     case "settings-toggle": {
       const key = el.dataset.key;
       toggleSetting(key, !state.profile.settings[key]); render();
@@ -1888,14 +1796,6 @@ root.addEventListener("input", (ev) => {
       break;
     case "bio-input":
       ensureBiometricsForm(); state.biometricsForm[el.dataset.field] = el.value;
-      scheduleRender();
-      break;
-    case "goal-type-input":
-      ensureGoalForm(); state.goalForm.goalType = el.value;
-      scheduleRender();
-      break;
-    case "goal-adjustment-input":
-      ensureGoalForm(); state.goalForm.calorieAdjustment = el.value;
       scheduleRender();
       break;
     case "import-text-input":
