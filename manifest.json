@@ -1,6 +1,6 @@
 {
-  "name": "Macros-Log",
-  "short_name": "Macros-Log",
+  "name": "MacrosFit",
+  "short_name": "MacrosFit",
   "description": "Rastreador nutricional pessoal para controle de calorias e macros",
   "start_url": "/",
   "display": "standalone",

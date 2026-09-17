@@ -1,8 +1,8 @@
-const CACHE_NAME = 'macroslog-v1';
+const CACHE_NAME = 'MacrosFit';
 const ASSETS = [
   '/',
   '/index.html',
-  '/app.js',
+  '/src/app.js',
   '/styles.css',
   '/manifest.json',
   '/icons/icon-192x192.png',
