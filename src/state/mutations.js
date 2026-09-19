@@ -2,37 +2,37 @@ import { STORAGE_KEYS, DEFAULT_PROFILE, MEAL_TYPES } from '../core/constants.js'
 import { persist } from '../core/storage.js';
 import { dateKey, emptyDay, normalize, uid } from '../core/utils.js';
 
-export function updateDiaryDay(state, key, updater) {
+export async function updateDiaryDay(state, key, updater) {
   const next = { ...state.diary, [key]: updater(state.diary[key] || emptyDay()) };
   state.diary = next;
-  persist(STORAGE_KEYS.diary, next);
+  await persist(STORAGE_KEYS.diary, next);
 }
 
-export function todayKey() { 
-  return dateKey(new Date()); 
+export function todayKey() {
+  return dateKey(new Date());
 }
 
-export function addEntry(state, entry, saveToLib) {
-  updateDiaryDay(state, todayKey(), (day) => {
+export async function addEntry(state, entry, saveToLib) {
+  await updateDiaryDay(state, todayKey(), (day) => {
     const updatedEntry = { ...entry, mealType: state.qa.mealType };
     return { ...day, entries: [...day.entries, updatedEntry] };
   });
   if (saveToLib) {
-    const food = { id: uid(), name: entry.name, ...entry.per100 };
+    const food = { id: uid(), name: entry.name, ...entry.per100, is_active: true };
     state.library = { ...state.library, [food.id]: food };
-    persist(STORAGE_KEYS.library, state.library);
+    await persist(STORAGE_KEYS.library, state.library);
   }
 }
 
-export function deleteEntry(state, id) {
-  updateDiaryDay(state, todayKey(), (day) => {
+export async function deleteEntry(state, id) {
+  await updateDiaryDay(state, todayKey(), (day) => {
     const updatedEntries = day.entries.filter((e) => e.id !== id);
     return { ...day, entries: updatedEntries };
   });
 }
 
-export function editEntryGrams(state, id, newGrams) {
-  updateDiaryDay(state, todayKey(), (day) => ({
+export async function editEntryGrams(state, id, newGrams) {
+  await updateDiaryDay(state, todayKey(), (day) => ({
     ...day,
     entries: day.entries.map((e) => {
       if (e.id !== id) return e;
@@ -42,60 +42,61 @@ export function editEntryGrams(state, id, newGrams) {
   }));
 }
 
-export function updateExtras(state, newDay) { 
-  updateDiaryDay(state, todayKey(), () => newDay); 
+export async function updateExtras(state, newDay) {
+  await updateDiaryDay(state, todayKey(), () => newDay);
 }
 
-export function upsertFood(state, food) { 
-  state.library = { ...state.library, [food.id]: food }; 
-  persist(STORAGE_KEYS.library, state.library); 
+export async function upsertFood(state, food) {
+  state.library = { ...state.library, [food.id]: food };
+  await persist(STORAGE_KEYS.library, state.library);
 }
 
-export function deleteFood(state, id) { 
-  const next = { ...state.library }; 
-  delete next[id]; 
-  state.library = next; 
-  persist(STORAGE_KEYS.library, next); 
+export async function deleteFood(state, id) {
+  const next = { ...state.library };
+  delete next[id];
+  state.library = next;
+  await persist(STORAGE_KEYS.library, next);
 }
 
-export function saveGoals(state, goals) { 
-  state.profile = { ...state.profile, goals }; 
-  persist(STORAGE_KEYS.profile, state.profile); 
+export async function saveGoals(state, goals) {
+  state.profile = { ...state.profile, goals };
+  await persist(STORAGE_KEYS.profile, state.profile);
 }
 
-export function saveBiometrics(state, biometrics) { 
-  state.profile = { ...state.profile, biometrics }; 
-  persist(STORAGE_KEYS.profile, state.profile); 
+export async function saveBiometrics(state, biometrics) {
+  state.profile = { ...state.profile, biometrics };
+  await persist(STORAGE_KEYS.profile, state.profile);
 }
 
-export function toggleSetting(state, key, val) { 
-  state.profile = { ...state.profile, settings: { ...state.profile.settings, [key]: val } }; 
-  persist(STORAGE_KEYS.profile, state.profile); 
+export async function toggleSetting(state, key, val) {
+  state.profile = { ...state.profile, settings: { ...state.profile.settings, [key]: val } };
+  await persist(STORAGE_KEYS.profile, state.profile);
 }
 
-export function resetAll(state) {
-  persist(STORAGE_KEYS.profile, DEFAULT_PROFILE); 
-  persist(STORAGE_KEYS.library, {}); 
-  persist(STORAGE_KEYS.diary, {});
-  state.profile = DEFAULT_PROFILE; 
-  state.library = {}; 
-  state.diary = {}; 
-  state.tab = "hoje"; 
+export async function resetAll(state) {
+  await persist(STORAGE_KEYS.profile, DEFAULT_PROFILE);
+  await persist(STORAGE_KEYS.library, {});
+  await persist(STORAGE_KEYS.diary, {});
+  state.profile = DEFAULT_PROFILE;
+  state.library = {};
+  state.diary = {};
+  state.tab = "hoje";
   state.confirmDelete = false;
-  state.qa = { 
-    name: "", 
-    grams: "", 
-    mealType: "cafe", 
-    manualOpen: false, 
-    manual: { kcal: "", protein: "", carbs: "", fat: "" }, 
-    saveToLib: true, 
-    showSuggest: false, 
-    msg: "" 
+  state.qa = {
+    name: "",
+    grams: "",
+    mealType: "cafe",
+    manualOpen: false,
+    manual: { kcal: "", protein: "", carbs: "", fat: "" },
+    saveToLib: true,
+    showSuggest: false,
+    msg: ""
   };
 }
 
 export function exportData(state) {
   const data = {
+    schemaVersion: "3.0",
     profile: state.profile,
     library: state.library,
     diary: state.diary,
@@ -113,20 +114,20 @@ export function exportData(state) {
   URL.revokeObjectURL(url);
 }
 
-export function importData(state) {
+export async function importData(state) {
   try {
     const data = JSON.parse(state.importExport.importData);
     if (data.profile) {
       state.profile = { ...DEFAULT_PROFILE, ...data.profile };
-      persist(STORAGE_KEYS.profile, state.profile);
+      await persist(STORAGE_KEYS.profile, state.profile);
     }
     if (data.library) {
       state.library = data.library;
-      persist(STORAGE_KEYS.library, state.library);
+      await persist(STORAGE_KEYS.library, state.library);
     }
     if (data.diary) {
       state.diary = data.diary;
-      persist(STORAGE_KEYS.diary, state.diary);
+      await persist(STORAGE_KEYS.diary, state.diary);
     }
     state.importExport.showImport = false;
     state.importExport.importData = "";
@@ -142,14 +143,15 @@ export function exportMeal(state, mealType, dateKey) {
     alert("Não há alimentos neste dia para exportar");
     return;
   }
-  
+
   const mealEntries = day.entries.filter(e => e.mealType === mealType);
   if (mealEntries.length === 0) {
     alert("Não há alimentos nesta refeição para exportar");
     return;
   }
-  
+
   const mealData = {
+    schemaVersion: "3.0",
     mealType: mealType,
     mealName: MEAL_TYPES.find(mt => mt.id === mealType)?.label || mealType,
     date: dateKey,
@@ -171,7 +173,7 @@ export function exportMeal(state, mealType, dateKey) {
     exportDate: new Date().toISOString(),
     version: "2.0"
   };
-  
+
   const blob = new Blob([JSON.stringify(mealData, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -189,17 +191,18 @@ export function exportMealInstance(state, instanceId, mealType, dateKey) {
     alert("Não há alimentos neste dia para exportar");
     return;
   }
-  
-  const mealEntries = day.entries.filter(e => 
+
+  const mealEntries = day.entries.filter(e =>
     (e.importInstanceId === instanceId) || (e.time === instanceId && e.mealType === mealType)
   );
-  
+
   if (mealEntries.length === 0) {
     alert("Não há alimentos nesta refeição para exportar");
     return;
   }
-  
+
   const mealData = {
+    schemaVersion: "3.0",
     mealType: mealType,
     mealName: MEAL_TYPES.find(mt => mt.id === mealType)?.label || mealType,
     date: dateKey,
@@ -221,7 +224,7 @@ export function exportMealInstance(state, instanceId, mealType, dateKey) {
     exportDate: new Date().toISOString(),
     version: "2.0"
   };
-  
+
   const blob = new Blob([JSON.stringify(mealData, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -233,31 +236,31 @@ export function exportMealInstance(state, instanceId, mealType, dateKey) {
   URL.revokeObjectURL(url);
 }
 
-export function importMeal(state) {
+export async function importMeal(state) {
   try {
     const mealData = JSON.parse(state.importExport.mealImportData);
-    
+
     if (!mealData.items || !Array.isArray(mealData.items)) {
       throw new Error("Formato inválido: campo 'items' ausente ou não é array");
     }
-    
+
     const mealType = mealData.mealType || state.qa.mealType;
     const importInstanceId = Date.now();
-    
+
     mealData.items.forEach(item => {
       if (item.per100) {
         const existingFood = Object.values(state.library).find(f => normalize(f.name) === normalize(item.name));
         if (!existingFood) {
-          const food = { id: uid(), name: item.name, ...item.per100 };
+          const food = { id: uid(), name: item.name, ...item.per100, is_active: true };
           state.library = { ...state.library, [food.id]: food };
         }
       }
     });
-    persist(STORAGE_KEYS.library, state.library);
-    
+    await persist(STORAGE_KEYS.library, state.library);
+
     const today = state.diary[todayKey()] || emptyDay();
     const updatedEntries = [...today.entries];
-    
+
     mealData.items.forEach(item => {
       const newEntry = {
         id: uid(),
@@ -274,9 +277,9 @@ export function importMeal(state) {
       };
       updatedEntries.push(newEntry);
     });
-    
-    updateDiaryDay(state, todayKey(), () => ({ ...today, entries: updatedEntries }));
-    
+
+    await updateDiaryDay(state, todayKey(), () => ({ ...today, entries: updatedEntries }));
+
     state.importExport.showMealImport = false;
     state.importExport.mealImportData = "";
     state.qa.msg = `Refeição importada com sucesso! (${mealData.items.length} itens)`;
@@ -307,27 +310,29 @@ export function getAllRegisteredFoods(state) {
   return all.sort((a, b) => b.lastUsed - a.lastUsed);
 }
 
-export function updateHistoryFoodMacros(state, foodName, newPer100) {
-  Object.keys(state.diary).forEach(key => {
-    const day = state.diary[key];
-    day.entries.forEach((e, index) => {
-      if (normalize(e.name) === normalize(foodName)) {
-        const g = e.grams;
-        state.diary[key].entries[index] = {
-          ...e,
-          per100: newPer100,
-          kcal: (newPer100.kcal * g) / 100,
-          protein: (newPer100.protein * g) / 100,
-          carbs: (newPer100.carbs * g) / 100,
-          fat: (newPer100.fat * g) / 100
-        };
-      }
+export async function updateHistoryFoodMacros(state, foodName, newPer100, recalcHistory) {
+  if (recalcHistory) {
+    Object.keys(state.diary).forEach(key => {
+      const day = state.diary[key];
+      day.entries.forEach((e, index) => {
+        if (normalize(e.name) === normalize(foodName)) {
+          const g = e.grams;
+          state.diary[key].entries[index] = {
+            ...e,
+            per100: newPer100,
+            kcal: (newPer100.kcal * g) / 100,
+            protein: (newPer100.protein * g) / 100,
+            carbs: (newPer100.carbs * g) / 100,
+            fat: (newPer100.fat * g) / 100
+          };
+        }
+      });
     });
-  });
-  persist(STORAGE_KEYS.diary, state.diary);
+    await persist(STORAGE_KEYS.diary, state.diary);
+  }
 }
 
-export function updateHistoryFoodName(state, oldName, newName) {
+export async function updateHistoryFoodName(state, oldName, newName) {
   Object.keys(state.diary).forEach(key => {
     const day = state.diary[key];
     day.entries.forEach((e, index) => {
@@ -339,5 +344,12 @@ export function updateHistoryFoodName(state, oldName, newName) {
       }
     });
   });
-  persist(STORAGE_KEYS.diary, state.diary);
+  await persist(STORAGE_KEYS.diary, state.diary);
+}
+
+export async function softDeleteFood(state, id) {
+  if (state.library[id]) {
+    state.library = { ...state.library, [id]: { ...state.library[id], is_active: false } };
+    await persist(STORAGE_KEYS.library, state.library);
+  }
 }

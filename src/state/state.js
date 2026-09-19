@@ -19,12 +19,13 @@ export const initialState = {
   },
   entryEdit: { id: null, val: "" },
   trendMetric: "calories",
-  lib: { 
-    query: "", 
-    adding: false, 
-    form: { name: "", kcal: "", protein: "", carbs: "", fat: "" }, 
-    editingId: null, 
-    editingHistory: null 
+  lib: {
+    query: "",
+    adding: false,
+    form: { name: "", kcal: "", protein: "", carbs: "", fat: "" },
+    editingId: null,
+    editingHistory: null,
+    recalcHistory: false
   },
   goalsForm: null,
   goalsSaved: false,

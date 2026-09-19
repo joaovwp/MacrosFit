@@ -1,6 +1,6 @@
 import { ACTIVITY_LEVELS } from './constants.js';
 
-export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+export const uid = () => crypto.randomUUID();
 
 export const normalize = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
@@ -18,8 +18,11 @@ export function esc(s) {
   }[c])); 
 }
 
-export function dateKey(d) { 
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; 
+export function dateKey(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function parseKey(k) { 

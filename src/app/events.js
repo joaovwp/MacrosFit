@@ -1,10 +1,10 @@
 import { recentFoods, qaBasis, qaComputed } from '../state/selectors.js';
-import { 
-  addEntry, deleteEntry, editEntryGrams, updateExtras, 
-  upsertFood, deleteFood, saveGoals, saveBiometrics, 
-  toggleSetting, resetAll, exportData, importData, 
-  exportMeal, exportMealInstance, importMeal, 
-  getAllRegisteredFoods, updateHistoryFoodMacros, updateHistoryFoodName 
+import {
+  addEntry, deleteEntry, editEntryGrams, updateExtras,
+  upsertFood, deleteFood, saveGoals, saveBiometrics,
+  toggleSetting, resetAll, exportData, importData,
+  exportMeal, exportMealInstance, importMeal,
+  getAllRegisteredFoods, updateHistoryFoodMacros, updateHistoryFoodName, softDeleteFood
 } from '../state/mutations.js';
 import { uid, dateKey, emptyDay, normalize } from '../core/utils.js';
 import { ensureGoalsForm } from '../components/settings/goalsForm.js';
@@ -57,11 +57,13 @@ export function setupEventHandlers(state, root) {
           per100 = { kcal: (totals.kcal / grams) * 100, protein: (totals.protein / grams) * 100, carbs: (totals.carbs / grams) * 100, fat: (totals.fat / grams) * 100 };
           savedNew = window.appState.qa.saveToLib;
         }
-        addEntry(window.appState, { id: uid(), name, grams, ...totals, per100, time: Date.now() }, savedNew);
-        window.appState.qa.msg = `${name} adicionado`;
-        window.appState.qa = { name: "", grams: "", manualOpen: false, manual: { kcal: "", protein: "", carbs: "", fat: "" }, saveToLib: true, showSuggest: false, msg: window.appState.qa.msg };
-        render(window.appState);
-        setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
+        (async () => {
+          await addEntry(window.appState, { id: uid(), name, grams, ...totals, per100, time: Date.now() }, savedNew);
+          window.appState.qa.msg = `${name} adicionado`;
+          window.appState.qa = { name: "", grams: "", manualOpen: false, manual: { kcal: "", protein: "", carbs: "", fat: "" }, saveToLib: true, showSuggest: false, msg: window.appState.qa.msg };
+          render(window.appState);
+          setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
+        })();
         break;
       }
       case "entry-edit-start":
@@ -70,9 +72,11 @@ export function setupEventHandlers(state, root) {
         break;
       case "entry-edit-confirm": {
         const v = parseFloat(window.appState.entryEdit.val);
-        editEntryGrams(window.appState, el.dataset.id, isNaN(v) ? Number(el.dataset.fallback) : v);
-        window.appState.entryEdit = { id: null, val: "" };
-        render(window.appState);
+        (async () => {
+          await editEntryGrams(window.appState, el.dataset.id, isNaN(v) ? Number(el.dataset.fallback) : v);
+          window.appState.entryEdit = { id: null, val: "" };
+          render(window.appState);
+        })();
         break;
       }
       case "entry-edit-cancel":
@@ -80,7 +84,10 @@ export function setupEventHandlers(state, root) {
         render(window.appState);
         break;
       case "entry-delete":
-        deleteEntry(window.appState, el.dataset.id); render(window.appState);
+        (async () => {
+          await deleteEntry(window.appState, el.dataset.id);
+          render(window.appState);
+        })();
         break;
       case "toggle-meal":
         const instanceKey = el.dataset.instanceKey;
@@ -89,20 +96,26 @@ export function setupEventHandlers(state, root) {
         break;
       case "extras-water-add": {
         const today = window.appState.diary[dateKey(new Date())] || emptyDay();
-        updateExtras(window.appState, { ...today, water: (today.water || 0) + Number(el.dataset.amt) });
-        render(window.appState);
+        (async () => {
+          await updateExtras(window.appState, { ...today, water: (today.water || 0) + Number(el.dataset.amt) });
+          render(window.appState);
+        })();
         break;
       }
       case "extras-water-reset": {
         const today = window.appState.diary[dateKey(new Date())] || emptyDay();
-        updateExtras(window.appState, { ...today, water: 0 });
-        render(window.appState);
+        (async () => {
+          await updateExtras(window.appState, { ...today, water: 0 });
+          render(window.appState);
+        })();
         break;
       }
       case "extras-workout-toggle": {
         const today = window.appState.diary[dateKey(new Date())] || emptyDay();
-        updateExtras(window.appState, { ...today, workout: { ...today.workout, done: ev.target.checked } });
-        render(window.appState);
+        (async () => {
+          await updateExtras(window.appState, { ...today, workout: { ...today.workout, done: ev.target.checked } });
+          render(window.appState);
+        })();
         break;
       }
       case "cal-prev":
@@ -132,9 +145,11 @@ export function setupEventHandlers(state, root) {
       case "lib-submit": {
         const f = window.appState.lib.form;
         if (!f.name.trim() || !f.kcal) break;
-        upsertFood(window.appState, { id: window.appState.lib.editingId || uid(), name: f.name.trim(), kcal: parseFloat(f.kcal) || 0, protein: parseFloat(f.protein) || 0, carbs: parseFloat(f.carbs) || 0, fat: parseFloat(f.fat) || 0 });
-        window.appState.lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "" }; window.appState.lib.editingId = null; window.appState.lib.adding = false;
-        render(window.appState);
+        (async () => {
+          await upsertFood(window.appState, { id: window.appState.lib.editingId || uid(), name: f.name.trim(), kcal: parseFloat(f.kcal) || 0, protein: parseFloat(f.protein) || 0, carbs: parseFloat(f.carbs) || 0, fat: parseFloat(f.fat) || 0, is_active: true });
+          window.appState.lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "" }; window.appState.lib.editingId = null; window.appState.lib.adding = false;
+          render(window.appState);
+        })();
         break;
       }
       case "lib-edit": {
@@ -143,7 +158,10 @@ export function setupEventHandlers(state, root) {
         break;
       }
       case "lib-delete":
-        deleteFood(window.appState, el.dataset.id); render(window.appState);
+        (async () => {
+          await softDeleteFood(window.appState, el.dataset.id);
+          render(window.appState);
+        })();
         break;
       case "lib-add-from-history": {
         const foodName = el.dataset.name;
@@ -189,58 +207,74 @@ export function setupEventHandlers(state, root) {
           carbs: parseFloat(window.appState.lib.form.carbs) || 0,
           fat: parseFloat(window.appState.lib.form.fat) || 0
         };
-        
-        if (normalize(oldName) !== normalize(newName)) {
-          updateHistoryFoodName(window.appState, oldName, newName);
-        }
-        
-        updateHistoryFoodMacros(window.appState, newName, newPer100);
-        window.appState.lib.editingHistory = null;
-        window.appState.lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "" };
-        window.appState.qa.msg = "Alimento atualizado em todo o histórico";
-        render(window.appState);
-        setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 2000);
+        const recalcHistory = window.appState.lib.recalcHistory || false;
+
+        (async () => {
+          if (normalize(oldName) !== normalize(newName)) {
+            await updateHistoryFoodName(window.appState, oldName, newName);
+          }
+
+          await updateHistoryFoodMacros(window.appState, newName, newPer100, recalcHistory);
+          window.appState.lib.editingHistory = null;
+          window.appState.lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "" };
+          window.appState.lib.recalcHistory = false;
+          window.appState.qa.msg = "Alimento atualizado em todo o histórico";
+          render(window.appState);
+          setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 2000);
+        })();
         break;
       }
       case "lib-cancel-history": {
         window.appState.lib.editingHistory = null;
         window.appState.lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "" };
+        window.appState.lib.recalcHistory = false;
         render(window.appState);
+        break;
+      }
+      case "lib-recalc-history-toggle": {
+        window.appState.lib.recalcHistory = el.checked;
         break;
       }
       case "goals-save": {
         ensureGoalsForm(window.appState);
         const f = window.appState.goalsForm;
         if (!f.calories || !f.protein || !f.carbs || !f.fat) break;
-        saveGoals(window.appState, { calories: parseFloat(f.calories), protein: parseFloat(f.protein), carbs: parseFloat(f.carbs), fat: parseFloat(f.fat) });
-        window.appState.goalsSaved = true; render(window.appState);
-        setTimeout(() => { window.appState.goalsSaved = false; render(window.appState); }, 1800);
+        (async () => {
+          await saveGoals(window.appState, { calories: parseFloat(f.calories), protein: parseFloat(f.protein), carbs: parseFloat(f.carbs), fat: parseFloat(f.fat) });
+          window.appState.goalsSaved = true; render(window.appState);
+          setTimeout(() => { window.appState.goalsSaved = false; render(window.appState); }, 1800);
+        })();
         break;
       }
       case "bio-save": {
         ensureBiometricsForm(window.appState);
         const f = window.appState.biometricsForm;
         if (!f.weight || !f.height || !f.birthDate || !f.gender || !f.activityLevel) break;
-        saveBiometrics(window.appState, { 
-          weight: parseFloat(f.weight), 
-          height: parseFloat(f.height), 
-          birthDate: f.birthDate, 
-          gender: f.gender, 
-          activityLevel: f.activityLevel 
-        });
-        window.appState.qa.msg = "Dados biológicos salvos";
-        render(window.appState);
-        setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
+        (async () => {
+          await saveBiometrics(window.appState, {
+            weight: parseFloat(f.weight),
+            height: parseFloat(f.height),
+            birthDate: f.birthDate,
+            gender: f.gender,
+            activityLevel: f.activityLevel
+          });
+          window.appState.qa.msg = "Dados biológicos salvos";
+          render(window.appState);
+          setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
+        })();
         break;
       }
       case "settings-toggle": {
         const key = el.dataset.key;
-        toggleSetting(window.appState, key, !window.appState.profile.settings[key]); render(window.appState);
+        (async () => {
+          await toggleSetting(window.appState, key, !window.appState.profile.settings[key]);
+          render(window.appState);
+        })();
         break;
       }
       case "reset-ask": window.appState.confirmDelete = true; render(window.appState); break;
       case "reset-cancel": window.appState.confirmDelete = false; render(window.appState); break;
-      case "reset-confirm": resetAll(window.appState); render(window.appState); break;
+      case "reset-confirm": (async () => { await resetAll(window.appState); render(window.appState); })(); break;
       case "export-data":
         exportData(window.appState);
         break;
@@ -251,8 +285,10 @@ export function setupEventHandlers(state, root) {
         window.appState.importExport.showImport = false; window.appState.importExport.importData = ""; render(window.appState);
         break;
       case "import-data":
-        importData(window.appState);
-        render(window.appState);
+        (async () => {
+          await importData(window.appState);
+          render(window.appState);
+        })();
         break;
       case "show-meal-import":
         window.appState.importExport.showMealImport = true; window.appState.importExport.mealImportData = ""; render(window.appState);
@@ -261,8 +297,10 @@ export function setupEventHandlers(state, root) {
         window.appState.importExport.showMealImport = false; window.appState.importExport.mealImportData = ""; render(window.appState);
         break;
       case "import-meal":
-        importMeal(window.appState);
-        render(window.appState);
+        (async () => {
+          await importMeal(window.appState);
+          render(window.appState);
+        })();
         break;
       case "export-meal":
         exportMeal(window.appState, el.dataset.meal, dateKey(new Date()));

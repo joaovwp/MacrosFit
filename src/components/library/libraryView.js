@@ -4,7 +4,7 @@ import { getAllRegisteredFoods } from '../../state/mutations.js';
 
 export function libraryViewHTML(state) {
   const q = normalize(state.lib.query);
-  const libraryList = Object.values(state.library).filter((f) => !q || normalize(f.name).includes(q)).sort((a, b) => a.name.localeCompare(b.name));
+  const libraryList = Object.values(state.library).filter((f) => (f.is_active !== false) && (!q || normalize(f.name).includes(q))).sort((a, b) => a.name.localeCompare(b.name));
   const registeredList = getAllRegisteredFoods(state).filter((f) => !q || normalize(f.name).includes(q));
   
   const isEditingHistory = state.lib.editingHistory !== null;
@@ -60,6 +60,7 @@ export function libraryViewHTML(state) {
           <input class="input" placeholder="carb." type="number" value="${esc(state.lib.form.carbs)}" data-action="lib-form-input" data-field="carbs"/>
           <input class="input" placeholder="gord." type="number" value="${esc(state.lib.form.fat)}" data-action="lib-form-input" data-field="fat"/>
         </div>
+        <label class="checkline" style="margin-bottom:10px"><input type="checkbox" data-action="lib-recalc-history-toggle" ${state.lib.recalcHistory ? "checked" : ""}/> Recalcular macros em todos os registros anteriores com este alimento</label>
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary" data-action="lib-save-history">Salvar e atualizar histórico</button>
           <button class="btn" data-action="lib-cancel-history">Cancelar</button>
