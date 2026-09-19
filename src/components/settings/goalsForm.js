@@ -22,13 +22,25 @@ export function goalsFormHTML(state) {
     <div style="font-weight:700;font-size:15px;margin-bottom:4px">Metas diárias</div>
     <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:12px">Configure suas metas de calorias e macronutrientes.</div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px">
-      <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Calorias (kcal)</div>
+      <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:2px;background:var(--calories)"></div>
+        Calorias (kcal)
+      </div>
         <input class="input" type="number" value="${esc(form.calories)}" data-action="goal-input" data-field="calories" placeholder="2000"/></div>
-      <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Proteína (g)</div>
+      <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:2px;background:var(--protein)"></div>
+        Proteína (g)
+      </div>
         <input class="input" type="number" value="${esc(form.protein)}" data-action="goal-input" data-field="protein" placeholder="150"/></div>
-      <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Carboidratos (g)</div>
+      <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:2px;background:var(--carbs)"></div>
+        Carboidratos (g)
+      </div>
         <input class="input" type="number" value="${esc(form.carbs)}" data-action="goal-input" data-field="carbs" placeholder="200"/></div>
-      <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Gordura (g)</div>
+      <div><div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px;display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:2px;background:var(--fat)"></div>
+        Gordura (g)
+      </div>
         <input class="input" type="number" value="${esc(form.fat)}" data-action="goal-input" data-field="fat" placeholder="65"/></div>
     </div>
     ${calFromMacros > 0 ? `<div style="font-size:12px;color:${showWarn ? "var(--over)" : "var(--textMuted)"};display:flex;align-items:center;gap:6px;margin-bottom:10px">

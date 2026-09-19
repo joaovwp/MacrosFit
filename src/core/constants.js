@@ -15,17 +15,17 @@ export const MEAL_TYPES = [
 ];
 
 export const ACTIVITY_LEVELS = [
-  { id: "sedentary", label: "Sedentário", multiplier: 1.2 },
-  { id: "light", label: "Levemente ativo", multiplier: 1.375 },
-  { id: "moderate", label: "Moderadamente ativo", multiplier: 1.55 },
-  { id: "active", label: "Muito ativo", multiplier: 1.725 },
-  { id: "very_active", label: "Extremamente ativo", multiplier: 1.9 }
+  { id: "sedentary", label: "Sedentário", multiplier: 1.2, description: "0-1 treinos por semana" },
+  { id: "light", label: "Levemente ativo", multiplier: 1.375, description: "1-3 treinos por semana" },
+  { id: "moderate", label: "Moderadamente ativo", multiplier: 1.55, description: "3-5 treinos por semana" },
+  { id: "active", label: "Muito ativo", multiplier: 1.725, description: "6-7 treinos por semana" },
+  { id: "very_active", label: "Extremamente ativo", multiplier: 1.9, description: "2 treinos por dia ou muito intenso" }
 ];
 
 export const DEFAULT_PROFILE = { 
   goals: null, 
   settings: { trackWeight: false, trackWater: false, trackWorkout: false },
-  biometrics: { weight: null, height: null, age: null, gender: null, activityLevel: null }
+  biometrics: { weight: null, height: null, birthDate: null, gender: null, activityLevel: null }
 };
 
 export const TABS = [

@@ -71,11 +71,24 @@ export function scoreLevel(score) {
   return 0;
 }
 
-export function calculateBMR(weight, height, age, gender) {
-  if (!weight || !height || !age || !gender) return null;
+export function calculateAge(birthDate) {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+export function calculateBMR(weight, height, birthDate, gender) {
+  if (!weight || !height || !birthDate || !gender) return null;
   const w = parseFloat(weight);
   const h = parseFloat(height);
-  const a = parseFloat(age);
+  const a = calculateAge(birthDate);
+  if (!a) return null;
   if (gender === "male") {
     return (10 * w) + (6.25 * h) - (5 * a) + 5;
   } else {

@@ -6,6 +6,13 @@ export function loadAll() {
     const p = localStorage.getItem(STORAGE_KEYS.profile); 
     if (p) {
       const parsed = JSON.parse(p);
+      // Migrar dados antigos: age -> birthDate
+      if (parsed.biometrics && parsed.biometrics.age && !parsed.biometrics.birthDate) {
+        const age = parsed.biometrics.age;
+        const birthYear = new Date().getFullYear() - age;
+        parsed.biometrics.birthDate = `${birthYear}-01-01`;
+        delete parsed.biometrics.age;
+      }
       out.profile = { 
         ...DEFAULT_PROFILE, 
         ...parsed,

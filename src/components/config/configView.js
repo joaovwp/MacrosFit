@@ -1,38 +1,8 @@
 import { icon } from '../../core/icons.js';
-import { esc, dateKey, emptyDay } from '../../core/utils.js';
-import { MEAL_TYPES } from '../../core/constants.js';
-import { groupEntriesByMeal } from '../../state/selectors.js';
+import { esc } from '../../core/utils.js';
 
 export function configViewHTML(state) {
-  const today = state.diary[dateKey(new Date())] || emptyDay();
-  const grouped = groupEntriesByMeal(today);
-  const completedMeals = Object.keys(grouped).filter(mealType => grouped[mealType].length > 0).length;
-  const totalMealTypes = MEAL_TYPES.length;
-  const mealProgress = (completedMeals / totalMealTypes) * 100;
-  
   return `<div style="display:flex;flex-direction:column;gap:16px">
-    <div class="card" style="padding:16px">
-      <div style="font-weight:700;font-size:15px;margin-bottom:4px">Progresso do dia</div>
-      <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:12px">Refeições registradas hoje.</div>
-      <div style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
-          <span style="color:var(--text);font-weight:600">${completedMeals}/${totalMealTypes} refeições</span>
-          <span class="mono" style="color:var(--textMuted)">${Math.round(mealProgress)}%</span>
-        </div>
-        <div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden">
-          <div style="width:${mealProgress}%;height:100%;background:var(--calories);transition:width .3s ease"></div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(80px, 1fr));gap:8px">
-        ${MEAL_TYPES.map(mt => {
-          const hasItems = grouped[mt.id].length > 0;
-          return `<div style="text-align:center;padding:8px;border-radius:6px;background:${hasItems ? "var(--surface2)" : "transparent"}">
-            <div style="font-size:16px;margin-bottom:4px">${icon(mt.icon, 16, hasItems ? "var(--calories)" : "var(--textFaint)")}</div>
-            <div style="font-size:10px;color:${hasItems ? "var(--text)" : "var(--textFaint)"}">${esc(mt.label)}</div>
-          </div>`;
-        }).join("")}
-      </div>
-    </div>
     <div class="card" style="padding:16px">
       <div style="font-weight:700;font-size:15px;margin-bottom:4px">Importar/Exportar dados</div>
       <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:12px">Faça backup dos seus dados ou importe de outro dispositivo.</div>
@@ -79,7 +49,7 @@ export function configViewHTML(state) {
     </div>
     <div class="card" style="padding:16px">
       <div style="font-weight:700;font-size:15px;margin-bottom:4px">Sobre o app</div>
-      <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:8px">Painel Nutricional v2.1</div>
+      <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:8px">MacrosFit v2.1</div>
       <div style="font-size:11px;color:var(--textFaint)">Rastreamento de calorias e macronutrientes com organização por refeições.</div>
     </div>
     <div class="card" style="padding:16px;border-color:var(--over)">

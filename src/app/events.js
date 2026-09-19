@@ -220,11 +220,11 @@ export function setupEventHandlers(state, root) {
       case "bio-save": {
         ensureBiometricsForm(window.appState);
         const f = window.appState.biometricsForm;
-        if (!f.weight || !f.height || !f.age || !f.gender || !f.activityLevel) break;
+        if (!f.weight || !f.height || !f.birthDate || !f.gender || !f.activityLevel) break;
         saveBiometrics(window.appState, { 
           weight: parseFloat(f.weight), 
           height: parseFloat(f.height), 
-          age: parseFloat(f.age), 
+          birthDate: f.birthDate, 
           gender: f.gender, 
           activityLevel: f.activityLevel 
         });
