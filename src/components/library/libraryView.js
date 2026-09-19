@@ -43,7 +43,7 @@ export function libraryViewHTML(state) {
               <div class="mono" style="font-size:11px;color:var(--textMuted);margin-top:2px">${Math.round(f.kcal)} kcal · P${round(f.protein)}g C${round(f.carbs)}g G${round(f.fat)}g /100g</div>
             </div>
             <button class="btn btn-icon" data-action="lib-edit" data-id="${f.id}">${icon("pencil", 13)}</button>
-            <button class="btn btn-icon" data-action="lib-delete" data-id="${f.id}">${icon("trash", 13, "var(--over)")}</button>
+            <button class="btn btn-icon btn-danger" data-action="lib-delete" data-id="${f.id}">${icon("trash", 13)}</button>
           </div>`).join("")}
         </div>`}
     </div>

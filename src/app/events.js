@@ -10,6 +10,8 @@ import { uid, dateKey, emptyDay, normalize } from '../core/utils.js';
 import { ensureGoalsForm } from '../components/settings/goalsForm.js';
 import { ensureBiometricsForm } from '../components/settings/biometricsForm.js';
 import { render, scheduleRender, setTextInputActive } from './render.js';
+import * as authApi from '../api/auth.js';
+import * as profileApi from '../api/profile.js';
 
 export function setupEventHandlers(state, root) {
   window.appState = state;
@@ -308,6 +310,225 @@ export function setupEventHandlers(state, root) {
       case "export-meal-instance":
         exportMealInstance(window.appState, el.dataset.instanceId, el.dataset.meal, dateKey(new Date()));
         break;
+      case "auth-toggle-mode":
+        window.appState.auth.mode = window.appState.auth.mode === 'login' ? 'signup' : 'login';
+        window.appState.auth.error = null;
+        render(window.appState);
+        break;
+      case "auth-submit": {
+        const { email, password, displayName } = window.appState.auth;
+        if (!email || !password) {
+          window.appState.auth.error = "Preencha e-mail e senha";
+          render(window.appState);
+          break;
+        }
+        if (window.appState.auth.mode === 'signup' && !displayName) {
+          window.appState.auth.error = "Preencha seu nome";
+          render(window.appState);
+          break;
+        }
+        window.appState.auth.loading = true;
+        window.appState.auth.error = null;
+        render(window.appState);
+        (async () => {
+          try {
+            if (window.appState.auth.mode === 'signup') {
+              const result = await authApi.signUp(email, password, displayName);
+              if (result.requiresConfirmation) {
+                window.appState.auth.loading = false;
+                window.appState.auth.error = "Verifique seu e-mail para confirmar a conta";
+                render(window.appState);
+                return;
+              }
+            } else {
+              await authApi.signIn(email, password);
+            }
+            const user = await authApi.getCurrentUser();
+            window.appState.auth.user = user;
+            window.appState.auth.loading = false;
+            window.appState.tab = "hoje";
+
+            // Reload profile from Supabase after signup/login
+            const { loadAll } = await import('../core/storage.js');
+            const loaded = await loadAll();
+            window.appState.profile = loaded.profile;
+
+            render(window.appState);
+          } catch (e) {
+            window.appState.auth.loading = false;
+            window.appState.auth.error = e.message || "Erro ao autenticar";
+            render(window.appState);
+          }
+        })();
+        break;
+      }
+      case "auth-reset-password": {
+        const email = window.appState.auth.email;
+        if (!email) {
+          window.appState.auth.error = "Preencha seu e-mail";
+          render(window.appState);
+          break;
+        }
+        (async () => {
+          try {
+            await authApi.resetPasswordForEmail(email);
+            window.appState.auth.error = null;
+            window.appState.auth.loading = false;
+            alert("E-mail de recuperação enviado");
+            render(window.appState);
+          } catch (e) {
+            window.appState.auth.error = e.message || "Erro ao enviar e-mail";
+            render(window.appState);
+          }
+        })();
+        break;
+      }
+      case "profile-edit":
+        window.appState.profileTab.editing = true;
+        window.appState.profileTab.form.displayName = window.appState.profile.display_name || '';
+        window.appState.profileTab.form.email = window.appState.auth.user?.email || '';
+        render(window.appState);
+        break;
+      case "profile-cancel-edit":
+        window.appState.profileTab.editing = false;
+        window.appState.profileTab.form = {
+          displayName: '',
+          email: '',
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        };
+        render(window.appState);
+        break;
+      case "profile-save": {
+        const { displayName, email } = window.appState.profileTab.form;
+        if (!displayName || !email) {
+          alert("Preencha todos os campos");
+          break;
+        }
+        (async () => {
+          try {
+            await profileApi.updateProfile({ display_name: displayName });
+            if (email !== window.appState.auth.user.email) {
+              await authApi.updateEmail(email);
+            }
+            window.appState.profile.display_name = displayName;
+            window.appState.profileTab.editing = false;
+            render(window.appState);
+          } catch (e) {
+            alert("Erro ao salvar perfil: " + e.message);
+          }
+        })();
+        break;
+      }
+      case "profile-show-change-password":
+        window.appState.profileTab.showChangePassword = true;
+        render(window.appState);
+        break;
+      case "profile-cancel-change-password":
+        window.appState.profileTab.showChangePassword = false;
+        window.appState.profileTab.form.currentPassword = '';
+        window.appState.profileTab.form.newPassword = '';
+        window.appState.profileTab.form.confirmPassword = '';
+        render(window.appState);
+        break;
+      case "profile-change-password": {
+        const { currentPassword, newPassword, confirmPassword } = window.appState.profileTab.form;
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          alert("Preencha todos os campos");
+          break;
+        }
+        if (newPassword !== confirmPassword) {
+          alert("As senhas não coincidem");
+          break;
+        }
+        (async () => {
+          try {
+            await authApi.updatePassword(newPassword);
+            window.appState.profileTab.showChangePassword = false;
+            window.appState.profileTab.form.currentPassword = '';
+            window.appState.profileTab.form.newPassword = '';
+            window.appState.profileTab.form.confirmPassword = '';
+            alert("Senha alterada com sucesso");
+            render(window.appState);
+          } catch (e) {
+            alert("Erro ao alterar senha: " + e.message);
+          }
+        })();
+        break;
+      }
+      case "profile-show-deactivate":
+        window.appState.profileTab.showDeactivateConfirm = true;
+        render(window.appState);
+        break;
+      case "profile-cancel-deactivate":
+        window.appState.profileTab.showDeactivateConfirm = false;
+        render(window.appState);
+        break;
+      case "profile-confirm-deactivate": {
+        (async () => {
+          try {
+            await profileApi.deactivateAccount();
+            await authApi.signOut();
+            window.appState.auth.user = null;
+            window.appState.auth.mode = 'login';
+            window.appState.tab = 'auth';
+            window.appState.profileTab.showDeactivateConfirm = false;
+            render(window.appState);
+          } catch (e) {
+            alert("Erro ao desativar conta: " + e.message);
+          }
+        })();
+        break;
+      }
+      case "profile-show-delete":
+        window.appState.profileTab.showDeleteConfirm = true;
+        render(window.appState);
+        break;
+      case "profile-cancel-delete":
+        window.appState.profileTab.showDeleteConfirm = false;
+        render(window.appState);
+        break;
+      case "profile-confirm-delete": {
+        (async () => {
+          try {
+            console.log('Starting account deletion...');
+            await profileApi.hardDeleteAccount();
+            console.log('Profile deactivated');
+            await authApi.signOut();
+            console.log('Signed out');
+            window.appState.auth.user = null;
+            window.appState.auth.mode = 'login';
+            window.appState.tab = 'auth';
+            window.appState.profileTab.showDeleteConfirm = false;
+            const { clearAll } = await import('../core/storage.js');
+            await clearAll();
+            console.log('All data cleared');
+            render(window.appState);
+            console.log('Account deletion complete');
+          } catch (e) {
+            console.error('Error deleting account:', e);
+            alert("Erro ao excluir conta: " + e.message);
+          }
+        })();
+        break;
+      }
+      case "profile-logout": {
+        (async () => {
+          try {
+            await authApi.signOut();
+            window.appState.auth.user = null;
+            window.appState.auth.mode = 'login';
+            window.appState.tab = 'auth';
+            const { clearAll } = await import('../core/storage.js');
+            await clearAll();
+            render(window.appState);
+          } catch (e) {
+            console.error('Error signing out:', e);
+          }
+        })();
+        break;
+      }
     }
   });
 
@@ -364,6 +585,30 @@ export function setupEventHandlers(state, root) {
         break;
       case "meal-import-text-input":
         window.appState.importExport.mealImportData = el.value;
+        break;
+      case "auth-email-input":
+        window.appState.auth.email = el.value;
+        break;
+      case "auth-password-input":
+        window.appState.auth.password = el.value;
+        break;
+      case "auth-display-name-input":
+        window.appState.auth.displayName = el.value;
+        break;
+      case "profile-display-name-input":
+        window.appState.profileTab.form.displayName = el.value;
+        break;
+      case "profile-email-input":
+        window.appState.profileTab.form.email = el.value;
+        break;
+      case "profile-current-password-input":
+        window.appState.profileTab.form.currentPassword = el.value;
+        break;
+      case "profile-new-password-input":
+        window.appState.profileTab.form.newPassword = el.value;
+        break;
+      case "profile-confirm-password-input":
+        window.appState.profileTab.form.confirmPassword = el.value;
         break;
     }
     

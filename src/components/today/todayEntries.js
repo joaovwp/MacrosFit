@@ -53,7 +53,7 @@ export function todayEntriesHTML(state) {
                 <button class="btn btn-icon" data-action="entry-edit-cancel">${icon("x", 12)}</button>
               ` : `
                 <button class="btn btn-icon" data-action="entry-edit-start" data-id="${e.id}" data-grams="${e.grams}">${icon("pencil", 12)}</button>
-                <button class="btn btn-icon" data-action="entry-delete" data-id="${e.id}">${icon("trash", 12, "var(--over)")}</button>
+                <button class="btn btn-icon btn-danger" data-action="entry-delete" data-id="${e.id}">${icon("trash", 12)}</button>
               `}
             </div>`).join("")}
             <div style="display:flex;justify-content:flex-end;margin-top:8px">

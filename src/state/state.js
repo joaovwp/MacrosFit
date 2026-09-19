@@ -7,15 +7,15 @@ export const initialState = {
   tab: "hoje",
   viewMonth: new Date(),
   selectedKey: null,
-  qa: { 
-    name: "", 
-    grams: "", 
-    mealType: "cafe", 
-    manualOpen: false, 
-    manual: { kcal: "", protein: "", carbs: "", fat: "" }, 
-    saveToLib: true, 
-    showSuggest: false, 
-    msg: "" 
+  qa: {
+    name: "",
+    grams: "",
+    mealType: "cafe",
+    manualOpen: false,
+    manual: { kcal: "", protein: "", carbs: "", fat: "" },
+    saveToLib: true,
+    showSuggest: false,
+    msg: ""
   },
   entryEdit: { id: null, val: "" },
   trendMetric: "calories",
@@ -30,16 +30,37 @@ export const initialState = {
   goalsForm: null,
   goalsSaved: false,
   confirmDelete: false,
-  importExport: { 
-    showImport: false, 
-    showExport: false, 
-    importData: "", 
-    showMealImport: false, 
-    mealImportData: "" 
+  importExport: {
+    showImport: false,
+    showExport: false,
+    importData: "",
+    showMealImport: false,
+    mealImportData: ""
   },
   appSettings: { theme: "dark", language: "pt-BR" },
   biometricsForm: null,
   expandedMeals: {},
   historyPeriod: 21,
   historyView: "overview",
+  auth: {
+    mode: 'login',
+    email: '',
+    password: '',
+    displayName: '',
+    loading: false,
+    error: null,
+    user: null
+  },
+  profileTab: {
+    editing: false,
+    form: {
+      displayName: '',
+      email: '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    },
+    showDeleteConfirm: false,
+    showDeactivateConfirm: false
+  }
 };
