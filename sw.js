@@ -1,4 +1,4 @@
-const CACHE_NAME = 'MacrosFit-v3';
+const CACHE_NAME = 'MacrosFit-v4';
 const ASSETS = [
   '/',
   '/index.html',
@@ -45,6 +45,20 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Ignore Supabase requests - never cache them
+  if (url.hostname.includes('.supabase.co')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Only cache GET requests from own origin
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

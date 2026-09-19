@@ -23,6 +23,7 @@ export function appHTML(state) {
       <div style="font-size:19px;font-weight:700;letter-spacing:-0.01em">painel nutricional</div>
       <div class="mono" style="font-size:11.5px;color:var(--textFaint);text-transform:capitalize">${new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div>
     </div>
+    ${state.connectionError ? `<div style="background:var(--error);color:white;padding:12px;border-radius:4px;margin-bottom:12px;font-size:13px">${state.connectionError}</div>` : ''}
     <div style="display:flex;gap:18px;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto">
       ${TABS.map((t) => `<button type="button" class="tab ${state.tab === t.id ? "active" : ""}" data-action="set-tab" data-tab="${t.id}">${t.label}</button>`).join("")}
       <button type="button" class="tab ${state.tab === 'perfil' ? 'active' : ''}" data-action="set-tab" data-tab="perfil">Perfil</button>

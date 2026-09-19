@@ -1,3 +1,3 @@
-import { loadAll, persist, clearAll } from '../db/adapter.js';
+import { loadAll, persist, clearAppData } from '../db/adapter.js';
 
-export { loadAll, persist, clearAll };
+export { loadAll, persist, clearAppData };

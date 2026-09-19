@@ -8,14 +8,16 @@ export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 export const round = (v) => Math.round(v * 10) / 10;
 
-export function esc(s) { 
-  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ 
-    "&": "&amp;", 
-    "<": "&lt;", 
-    ">": "&gt;", 
-    '"': "&quot;", 
-    "'": "&#39;" 
-  }[c])); 
+export function esc(s) {
+  // Função única de escape HTML - escapa & < > " '
+  // Uso em atributos HTML também é seguro com essas entidades
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
 }
 
 export function dateKey(d) {

@@ -414,9 +414,11 @@ export function setupEventHandlers(state, root) {
             }
             window.appState.profile.display_name = displayName;
             window.appState.profileTab.editing = false;
+            window.appState.connectionError = null;
             render(window.appState);
           } catch (e) {
-            alert("Erro ao salvar perfil: " + e.message);
+            window.appState.connectionError = 'Erro ao salvar perfil: ' + e.message;
+            render(window.appState);
           }
         })();
         break;
@@ -449,34 +451,12 @@ export function setupEventHandlers(state, root) {
             window.appState.profileTab.form.currentPassword = '';
             window.appState.profileTab.form.newPassword = '';
             window.appState.profileTab.form.confirmPassword = '';
+            window.appState.connectionError = null;
             alert("Senha alterada com sucesso");
             render(window.appState);
           } catch (e) {
-            alert("Erro ao alterar senha: " + e.message);
-          }
-        })();
-        break;
-      }
-      case "profile-show-deactivate":
-        window.appState.profileTab.showDeactivateConfirm = true;
-        render(window.appState);
-        break;
-      case "profile-cancel-deactivate":
-        window.appState.profileTab.showDeactivateConfirm = false;
-        render(window.appState);
-        break;
-      case "profile-confirm-deactivate": {
-        (async () => {
-          try {
-            await profileApi.deactivateAccount();
-            await authApi.signOut();
-            window.appState.auth.user = null;
-            window.appState.auth.mode = 'login';
-            window.appState.tab = 'auth';
-            window.appState.profileTab.showDeactivateConfirm = false;
+            window.appState.connectionError = 'Erro ao alterar senha: ' + e.message;
             render(window.appState);
-          } catch (e) {
-            alert("Erro ao desativar conta: " + e.message);
           }
         })();
         break;
@@ -489,26 +469,20 @@ export function setupEventHandlers(state, root) {
         window.appState.profileTab.showDeleteConfirm = false;
         render(window.appState);
         break;
-      case "profile-confirm-delete": {
+      case "profile-confirm-deactivate": {
         (async () => {
           try {
-            console.log('Starting account deletion...');
-            await profileApi.hardDeleteAccount();
-            console.log('Profile deactivated');
+            await profileApi.deactivateAccount();
             await authApi.signOut();
-            console.log('Signed out');
             window.appState.auth.user = null;
             window.appState.auth.mode = 'login';
             window.appState.tab = 'auth';
             window.appState.profileTab.showDeleteConfirm = false;
-            const { clearAll } = await import('../core/storage.js');
-            await clearAll();
-            console.log('All data cleared');
+            const { clearAppData } = await import('../core/storage.js');
+            await clearAppData('deactivated-user');
             render(window.appState);
-            console.log('Account deletion complete');
           } catch (e) {
-            console.error('Error deleting account:', e);
-            alert("Erro ao excluir conta: " + e.message);
+            alert("Erro ao desativar conta: " + e.message);
           }
         })();
         break;
@@ -520,8 +494,8 @@ export function setupEventHandlers(state, root) {
             window.appState.auth.user = null;
             window.appState.auth.mode = 'login';
             window.appState.tab = 'auth';
-            const { clearAll } = await import('../core/storage.js');
-            await clearAll();
+            const { clearAppData } = await import('../core/storage.js');
+            await clearAppData(window.appState.auth.user?.id || 'unknown');
             render(window.appState);
           } catch (e) {
             console.error('Error signing out:', e);
@@ -579,6 +553,21 @@ export function setupEventHandlers(state, root) {
       case "bio-input":
         ensureBiometricsForm(window.appState); window.appState.biometricsForm[el.dataset.field] = el.value;
         scheduleRender(window.appState);
+        break;
+      case "profile-display-name-input":
+        window.appState.profileTab.form.displayName = el.value;
+        break;
+      case "profile-email-input":
+        window.appState.profileTab.form.email = el.value;
+        break;
+      case "profile-current-password-input":
+        window.appState.profileTab.form.currentPassword = el.value;
+        break;
+      case "profile-new-password-input":
+        window.appState.profileTab.form.newPassword = el.value;
+        break;
+      case "profile-confirm-password-input":
+        window.appState.profileTab.form.confirmPassword = el.value;
         break;
       case "import-text-input":
         window.appState.importExport.importData = el.value;

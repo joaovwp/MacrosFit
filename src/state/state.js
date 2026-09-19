@@ -1,7 +1,5 @@
-import { DEFAULT_PROFILE } from '../core/constants.js';
-
 export const initialState = {
-  profile: DEFAULT_PROFILE,
+  profile: null,
   library: {},
   diary: {},
   tab: "hoje",
@@ -60,7 +58,7 @@ export const initialState = {
       newPassword: '',
       confirmPassword: ''
     },
-    showDeleteConfirm: false,
-    showDeactivateConfirm: false
-  }
+    showDeleteConfirm: false
+  },
+  connectionError: null
 };

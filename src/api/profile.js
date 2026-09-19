@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../supabase/client.js';
 import { getCurrentUser } from './auth.js';
+import { mapProfileFromDB } from '../utils/mapper.js';
 
 export async function getProfile() {
   if (!isSupabaseConfigured) {
@@ -16,7 +17,24 @@ export async function getProfile() {
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+
+  // Perfil ausente: criar novo
+  if (!data) {
+    const display_name = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Usuário';
+    const { data: newProfile, error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: user.id,
+        display_name
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+    return mapProfileFromDB(newProfile);
+  }
+
+  return mapProfileFromDB(data);
 }
 
 export async function updateProfile(updates) {
@@ -131,17 +149,4 @@ export async function deactivateAccount() {
 
   if (error) throw error;
   return data;
-}
-
-export async function hardDeleteAccount() {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured');
-  }
-
-  // Deactivate profile first
-  await deactivateAccount();
-
-  // Note: Full account deletion requires Edge Function with service_role
-  // For now, we deactivate and the user can contact support for permanent deletion
-  // The CASCADE on user_id will delete all data when the auth user is deleted
 }

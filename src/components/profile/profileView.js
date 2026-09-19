@@ -7,9 +7,12 @@ export function profileViewHTML(state) {
   const editing = state.profileTab.editing;
   const form = state.profileTab.form;
   const showDeleteConfirm = state.profileTab.showDeleteConfirm;
-  const showDeactivateConfirm = state.profileTab.showDeactivateConfirm;
 
   if (!user) {
+    return `<div style="padding:20px;text-align:center;color:var(--textMuted)">Carregando perfil...</div>`;
+  }
+
+  if (!profile) {
     return `<div style="padding:20px;text-align:center;color:var(--textMuted)">Carregando perfil...</div>`;
   }
 
@@ -17,10 +20,10 @@ export function profileViewHTML(state) {
     <div class="card" style="padding:20px">
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
         <div style="width:64px;height:64px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white">
-          ${esc(profile.display_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U')}
+          ${esc(profile.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U')}
         </div>
         <div>
-          <div style="font-size:18px;font-weight:700;color:var(--text)">${esc(profile.display_name || 'Sem nome')}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text)">${esc(profile.displayName || 'Sem nome')}</div>
           <div style="font-size:13px;color:var(--textMuted)">${esc(user.email || '')}</div>
           <div style="font-size:12px;color:var(--textFaint);margin-top:4px">Conta criada em ${new Date(user.created_at).toLocaleDateString('pt-BR')}</div>
         </div>
@@ -50,7 +53,7 @@ export function profileViewHTML(state) {
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Segurança</div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <button class="btn" data-action="profile-show-change-password">Alterar senha</button>
-        <button class="btn btn-danger" data-action="profile-show-delete">Excluir conta</button>
+        <button class="btn btn-danger" data-action="profile-show-delete">Desativar conta</button>
       </div>
     </div>
 
@@ -80,10 +83,10 @@ export function profileViewHTML(state) {
 
     ${showDeleteConfirm ? `
       <div class="card" style="padding:20px;border:1px solid var(--error)">
-        <div style="font-size:15px;font-weight:700;color:var(--error);margin-bottom:8px">Excluir conta?</div>
-        <div style="font-size:13px;color:var(--text);margin-bottom:16px">Esta ação não pode ser desfeita. Todos os seus dados serão perdidos.</div>
+        <div style="font-size:15px;font-weight:700;color:var(--error);margin-bottom:8px">Desativar conta</div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:16px">Esta ação desativará sua conta. Você não poderá mais fazer login.</div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-danger-solid" data-action="profile-confirm-delete">Excluir</button>
+          <button class="btn btn-danger-solid" data-action="profile-confirm-deactivate">Desativar</button>
           <button class="btn" data-action="profile-cancel-delete">Cancelar</button>
         </div>
       </div>

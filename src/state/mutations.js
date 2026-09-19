@@ -1,11 +1,22 @@
-import { STORAGE_KEYS, DEFAULT_PROFILE, MEAL_TYPES } from '../core/constants.js';
+import { MEAL_TYPES, VALIDATION_LIMITS } from '../core/constants.js';
 import { persist } from '../core/storage.js';
 import { dateKey, emptyDay, normalize, uid } from '../core/utils.js';
+
+const DEFAULT_PROFILE = {
+  goals: null,
+  settings: { trackWeight: false, trackWater: false, trackWorkout: false },
+  biometrics: { weight: null, height: null, birthDate: null, gender: null, activityLevel: null }
+};
 
 export async function updateDiaryDay(state, key, updater) {
   const next = { ...state.diary, [key]: updater(state.diary[key] || emptyDay()) };
   state.diary = next;
-  await persist(STORAGE_KEYS.diary, next);
+  try {
+    await persist('diary', next);
+    state.connectionError = null;
+  } catch (e) {
+    state.connectionError = 'Erro de conexão. Suas alterações foram salvas localmente.';
+  }
 }
 
 export function todayKey() {
@@ -20,7 +31,12 @@ export async function addEntry(state, entry, saveToLib) {
   if (saveToLib) {
     const food = { id: uid(), name: entry.name, ...entry.per100, is_active: true };
     state.library = { ...state.library, [food.id]: food };
-    await persist(STORAGE_KEYS.library, state.library);
+    try {
+      await persist('library', state.library);
+      state.connectionError = null;
+    } catch (e) {
+      state.connectionError = 'Erro de conexão. Suas alterações foram salvas localmente.';
+    }
   }
 }
 
@@ -48,35 +64,60 @@ export async function updateExtras(state, newDay) {
 
 export async function upsertFood(state, food) {
   state.library = { ...state.library, [food.id]: food };
-  await persist(STORAGE_KEYS.library, state.library);
+  try {
+    await persist('library', state.library);
+    state.connectionError = null;
+  } catch (e) {
+    state.connectionError = 'Erro de conexão. Suas alterações foram salvas localmente.';
+  }
 }
 
 export async function deleteFood(state, id) {
   const next = { ...state.library };
   delete next[id];
   state.library = next;
-  await persist(STORAGE_KEYS.library, next);
+  try {
+    await persist('library', next);
+    state.connectionError = null;
+  } catch (e) {
+    state.connectionError = 'Erro de conexão. Suas alterações foram salvas localmente.';
+  }
 }
 
 export async function saveGoals(state, goals) {
   state.profile = { ...state.profile, goals };
-  await persist(STORAGE_KEYS.profile, state.profile);
+  try {
+    await persist('profile', state.profile);
+    state.connectionError = null;
+  } catch (e) {
+    state.connectionError = 'Erro de conexão. Suas alterações foram salvas localmente.';
+  }
 }
 
 export async function saveBiometrics(state, biometrics) {
   state.profile = { ...state.profile, biometrics };
-  await persist(STORAGE_KEYS.profile, state.profile);
+  try {
+    await persist('profile', state.profile);
+    state.connectionError = null;
+  } catch (e) {
+    state.connectionError = 'Erro de conexão. Suas alterações foram salvas localmente.';
+  }
 }
 
 export async function toggleSetting(state, key, val) {
   state.profile = { ...state.profile, settings: { ...state.profile.settings, [key]: val } };
-  await persist(STORAGE_KEYS.profile, state.profile);
+  try {
+    await persist('profile', state.profile);
+    state.connectionError = null;
+  } catch (e) {
+    state.connectionError = 'Erro de conexão. Suas alterações foram salvas localmente.';
+  }
 }
 
 export async function resetAll(state) {
-  await persist(STORAGE_KEYS.profile, DEFAULT_PROFILE);
-  await persist(STORAGE_KEYS.library, {});
-  await persist(STORAGE_KEYS.diary, {});
+  await persist('profile', DEFAULT_PROFILE);
+  await persist('library', {});
+  await persist('diary', {});
   state.profile = DEFAULT_PROFILE;
   state.library = {};
   state.diary = {};
@@ -117,23 +158,63 @@ export function exportData(state) {
 export async function importData(state) {
   try {
     const data = JSON.parse(state.importExport.importData);
+
+    // Validar schemaVersion
+    if (!data.schemaVersion || typeof data.schemaVersion !== 'string') {
+      throw new Error('Versão do schema inválida');
+    }
+
+    // Validar tipos de dados
+    if (data.profile && typeof data.profile !== 'object') {
+      throw new Error('Perfil inválido');
+    }
+
+    if (data.library && typeof data.library !== 'object') {
+      throw new Error('Biblioteca inválida');
+    }
+
+    if (data.diary && typeof data.diary !== 'object') {
+      throw new Error('Diário inválido');
+    }
+
+    // Validar limites
+    if (data.library) {
+      for (const [id, food] of Object.entries(data.library)) {
+        if (!food || typeof food !== 'object') {
+          throw new Error(`Alimento inválido: ${id}`);
+        }
+        if (typeof food.kcal !== 'number' || food.kcal < 0 || food.kcal > VALIDATION_LIMITS.KCAL_MAX) {
+          throw new Error(`Calorias inválidas para: ${food.name || id}`);
+        }
+        if (typeof food.protein !== 'number' || food.protein < 0 || food.protein > VALIDATION_LIMITS.MACRO_MAX) {
+          throw new Error(`Proteína inválida para: ${food.name || id}`);
+        }
+        if (typeof food.carbs !== 'number' || food.carbs < 0 || food.carbs > VALIDATION_LIMITS.MACRO_MAX) {
+          throw new Error(`Carboidratos inválidos para: ${food.name || id}`);
+        }
+        if (typeof food.fat !== 'number' || food.fat < 0 || food.fat > VALIDATION_LIMITS.MACRO_MAX) {
+          throw new Error(`Gordura inválida para: ${food.name || id}`);
+        }
+      }
+    }
+
     if (data.profile) {
       state.profile = { ...DEFAULT_PROFILE, ...data.profile };
-      await persist(STORAGE_KEYS.profile, state.profile);
+      await persist('profile', state.profile);
     }
     if (data.library) {
       state.library = data.library;
-      await persist(STORAGE_KEYS.library, state.library);
+      await persist('library', state.library);
     }
     if (data.diary) {
       state.diary = data.diary;
-      await persist(STORAGE_KEYS.diary, state.diary);
+      await persist('diary', state.diary);
     }
     state.importExport.showImport = false;
     state.importExport.importData = "";
     state.qa.msg = "Dados importados com sucesso!";
   } catch (e) {
-    alert("Erro ao importar dados: formato JSON inválido");
+    alert("Erro ao importar dados: " + e.message);
   }
 }
 
@@ -240,9 +321,39 @@ export async function importMeal(state) {
   try {
     const mealData = JSON.parse(state.importExport.mealImportData);
 
+    // Validar schemaVersion
+    if (!mealData.schemaVersion || typeof mealData.schemaVersion !== 'string') {
+      throw new Error('Versão do schema inválida');
+    }
+
     if (!mealData.items || !Array.isArray(mealData.items)) {
       throw new Error("Formato inválido: campo 'items' ausente ou não é array");
     }
+
+    // Validar tipos e limites dos itens
+    mealData.items.forEach((item, index) => {
+      if (!item || typeof item !== 'object') {
+        throw new Error(`Item inválido no índice ${index}`);
+      }
+      if (typeof item.name !== 'string' || !item.name.trim()) {
+        throw new Error(`Nome inválido no índice ${index}`);
+      }
+      if (typeof item.grams !== 'number' || item.grams <= 0 || item.grams > VALIDATION_LIMITS.GRAMS_MAX) {
+        throw new Error(`Gramas inválidos para: ${item.name}`);
+      }
+      if (typeof item.kcal !== 'number' || item.kcal < 0 || item.kcal > VALIDATION_LIMITS.KCAL_MAX) {
+        throw new Error(`Calorias inválidas para: ${item.name}`);
+      }
+      if (typeof item.protein !== 'number' || item.protein < 0 || item.protein > VALIDATION_LIMITS.MACRO_MAX) {
+        throw new Error(`Proteína inválida para: ${item.name}`);
+      }
+      if (typeof item.carbs !== 'number' || item.carbs < 0 || item.carbs > VALIDATION_LIMITS.MACRO_MAX) {
+        throw new Error(`Carboidratos inválidos para: ${item.name}`);
+      }
+      if (typeof item.fat !== 'number' || item.fat < 0 || item.fat > VALIDATION_LIMITS.MACRO_MAX) {
+        throw new Error(`Gordura inválida para: ${item.name}`);
+      }
+    });
 
     const mealType = mealData.mealType || state.qa.mealType;
     const importInstanceId = Date.now();
@@ -256,7 +367,7 @@ export async function importMeal(state) {
         }
       }
     });
-    await persist(STORAGE_KEYS.library, state.library);
+    await persist('library', state.library);
 
     const today = state.diary[todayKey()] || emptyDay();
     const updatedEntries = [...today.entries];
@@ -328,7 +439,7 @@ export async function updateHistoryFoodMacros(state, foodName, newPer100, recalc
         }
       });
     });
-    await persist(STORAGE_KEYS.diary, state.diary);
+    await persist('diary', state.diary);
   }
 }
 
@@ -344,12 +455,12 @@ export async function updateHistoryFoodName(state, oldName, newName) {
       }
     });
   });
-  await persist(STORAGE_KEYS.diary, state.diary);
+  await persist('diary', state.diary);
 }
 
 export async function softDeleteFood(state, id) {
   if (state.library[id]) {
     state.library = { ...state.library, [id]: { ...state.library[id], is_active: false } };
-    await persist(STORAGE_KEYS.library, state.library);
+    await persist('library', state.library);
   }
 }

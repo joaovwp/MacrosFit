@@ -91,8 +91,15 @@ export async function getCurrentUser() {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) {
     // AuthSessionMissingError means no session (expected when not logged in)
-    // 403 means session is invalid (expected after deletion/logout)
-    if (error.name === 'AuthSessionMissingError' || error.status === 403) return null;
+    if (error.name === 'AuthSessionMissingError') return null;
+
+    // 401/403 means session is invalid/expired
+    if (error.status === 401 || error.status === 403) {
+      // Sign out local only (session already invalid on server)
+      await supabase.auth.signOut({ scope: 'local' });
+      return null;
+    }
+
     console.error('Error getting current user:', error);
     return null;
   }

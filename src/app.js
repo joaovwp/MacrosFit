@@ -1,86 +1,90 @@
 import { initialState } from './state/state.js';
-import { loadAll, persist, clearAll } from './core/storage.js';
+import { loadAll, persist, clearAppData } from './core/storage.js';
 import { render } from './app/render.js';
 import { setupEventHandlers } from './app/events.js';
-import { STORAGE_KEYS } from './core/constants.js';
 import { getCurrentUser, onAuthStateChange, signOut } from './api/auth.js';
 
-async function init() {
-  // Carregar dados do localStorage
-  const loaded = await loadAll();
-  const state = { ...initialState, profile: loaded.profile, library: loaded.library, diary: loaded.diary };
-
-  // Migrar dados antigos para nova estrutura (remover redundância meals)
-  Object.keys(state.diary).forEach(key => {
-    const day = state.diary[key];
-    if (day.meals) {
-      delete state.diary[key].meals;
-      persist(STORAGE_KEYS.diary, state.diary);
-    }
-  });
-
-  // Check if user is authenticated
-  try {
-    const user = await getCurrentUser();
-    if (user) {
-      // Load profile from Supabase to check if deactivated
-      const { getProfile } = await import('./api/profile.js');
-      const profile = await getProfile();
-
-      if (profile && profile.deactivated_at) {
-        // Account is deactivated, sign out
-        await signOut();
-        await clearAll();
-        state.tab = 'auth';
-        state.auth.mode = 'login';
-        state.auth.error = 'Esta conta foi excluída';
-        render(state);
-        return;
-      }
-
-      state.profile = profile || state.profile;
-      state.auth.user = user;
-      state.tab = 'hoje';
-    } else {
-      state.tab = 'auth';
-    }
-  } catch (e) {
-    console.error('Error checking auth:', e);
-    state.tab = 'auth';
+// Limpar chaves globais antigas na primeira execução
+function cleanupOldKeys() {
+  const cleanupKey = 'ft-cleanup-v2';
+  if (!localStorage.getItem(cleanupKey)) {
+    localStorage.removeItem('ft-profile');
+    localStorage.removeItem('ft-food-library');
+    localStorage.removeItem('ft-diary');
+    localStorage.setItem(cleanupKey, 'true');
   }
+}
+
+// Função para carregar perfil e dados do usuário
+async function loadUserData(state, user) {
+  try {
+    const { getProfile } = await import('./api/profile.js');
+    const profile = await getProfile();
+
+    // Se perfil estiver desativado, fazer logout
+    if (profile && profile.deactivatedAt) {
+      await signOut();
+      await clearAppData(user.id);
+      state.auth.user = null;
+      state.auth.mode = 'login';
+      state.tab = 'auth';
+      state.auth.error = 'Esta conta foi desativada';
+      return false;
+    }
+
+    state.profile = profile;
+    state.auth.user = user;
+    state.tab = 'hoje';
+    state.connectionError = null;
+
+    // Load data from Supabase
+    const loaded = await loadAll();
+    state.library = loaded.library;
+    state.diary = loaded.diary;
+    return true;
+  } catch (e) {
+    console.error('Error loading user data:', e);
+    state.connectionError = 'Erro ao carregar dados: ' + e.message + '. Tente novamente.';
+    state.auth.user = user;
+    state.tab = 'hoje';
+    return false;
+  }
+}
+
+async function init() {
+  cleanupOldKeys();
+
+  const state = { ...initialState };
 
   // Setup e renderização inicial
   const root = document.getElementById("root");
   setupEventHandlers(state, root);
   render(state);
 
-  // Listen for auth state changes
+  // Bootstrap único de auth
+  try {
+    const user = await getCurrentUser();
+    if (user) {
+      await loadUserData(state, user);
+      render(state);
+    } else {
+      state.tab = 'auth';
+      state.auth.mode = 'login';
+      render(state);
+    }
+  } catch (e) {
+    console.error('Error checking auth:', e);
+    state.tab = 'auth';
+    state.auth.mode = 'login';
+    state.auth.error = 'Sessão expirada, entre novamente';
+    render(state);
+  }
+
+  // onAuthStateChange só atualiza sessão em memória
   onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
-      // Load profile from Supabase to check if deactivated
-      try {
-        const { getProfile } = await import('./api/profile.js');
-        const profile = await getProfile();
-
-        if (profile && profile.deactivated_at) {
-          // Account is deactivated, sign out
-          await signOut();
-          await clearAll();
-          state.auth.user = null;
-          state.auth.mode = 'login';
-          state.tab = 'auth';
-          state.auth.error = 'Esta conta foi excluída';
-          render(state);
-          return;
-        }
-
-        state.profile = profile || state.profile;
-      } catch (e) {
-        console.error('Error loading profile on sign in:', e);
-      }
-
       state.auth.user = session.user;
-      state.tab = 'hoje';
+      await loadUserData(state, session.user);
       render(state);
     } else if (event === 'SIGNED_OUT') {
       state.auth.user = null;
