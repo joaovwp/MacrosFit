@@ -107,3 +107,31 @@ export function calculateTDEE(bmr, activityLevel) {
   if (!level) return null;
   return Math.round(bmr * level.multiplier);
 }
+
+export function calculateMacrosFromDistribution(calories, distribution, weight) {
+  if (!calories || !distribution) return null;
+  
+  const cal = parseFloat(calories);
+  if (isNaN(cal) || cal <= 0) return null;
+  
+  if (distribution.type === "per_kg") {
+    if (!weight) return null;
+    const w = parseFloat(weight);
+    if (isNaN(w) || w <= 0) return null;
+    
+    const protein = Math.round(distribution.proteinPerKg * w);
+    const fat = Math.round(distribution.fatPerKg * w);
+    const proteinCal = protein * 4;
+    const fatCal = fat * 9;
+    const remainingCal = cal - proteinCal - fatCal;
+    const carbs = Math.max(0, Math.round(remainingCal / 4));
+    
+    return { protein, carbs, fat };
+  }
+  
+  const protein = Math.round((cal * distribution.proteinPercent) / 4);
+  const carbs = Math.round((cal * distribution.carbsPercent) / 4);
+  const fat = Math.round((cal * distribution.fatPercent) / 9);
+  
+  return { protein, carbs, fat };
+}

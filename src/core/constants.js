@@ -40,3 +40,66 @@ export const VALIDATION_LIMITS = {
 export const TIMEOUTS = {
   AUDIT_LOG: 1500
 };
+
+// DISTRIBUIÇÕES DE MACROS
+export const MACRO_DISTRIBUTIONS = [
+  {
+    id: "balanced",
+    label: "Equilibrado",
+    description: "30% proteína, 40% carboidratos, 30% gordura",
+    proteinPercent: 0.30,
+    carbsPercent: 0.40,
+    fatPercent: 0.30
+  },
+  {
+    id: "high_protein",
+    label: "Alta proteína",
+    description: "40% proteína, 35% carboidratos, 25% gordura",
+    proteinPercent: 0.40,
+    carbsPercent: 0.35,
+    fatPercent: 0.25
+  },
+  {
+    id: "low_carb",
+    label: "Baixo carboidrato",
+    description: "35% proteína, 25% carboidratos, 40% gordura",
+    proteinPercent: 0.35,
+    carbsPercent: 0.25,
+    fatPercent: 0.40
+  },
+  {
+    id: "keto",
+    label: "Cetogênica",
+    description: "25% proteína, 5% carboidratos, 70% gordura",
+    proteinPercent: 0.25,
+    carbsPercent: 0.05,
+    fatPercent: 0.70
+  },
+  {
+    id: "fitness_standard",
+    label: "Padrão",
+    description: "2.2g/kg proteína, 0.8g/kg gordura, resto em carboidratos",
+    type: "per_kg",
+    proteinPerKg: 2.2,
+    fatPerKg: 0.8
+  }
+];
+
+// OBJETIVOS CALÓRICOS
+export const CALORIE_GOALS = [
+  {
+    id: "maintain",
+    label: "Manter peso",
+    delta: 0
+  },
+  {
+    id: "lose",
+    label: "Perder peso",
+    delta: -150
+  },
+  {
+    id: "gain",
+    label: "Ganhar massa",
+    delta: 150
+  }
+];

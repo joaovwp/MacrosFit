@@ -28,6 +28,8 @@ export const initialState = {
   },
   goalsForm: null,
   goalsSaved: false,
+  selectedCalorieGoal: null,
+  selectedMacroDistribution: null,
   confirmDelete: false,
   importExport: {
     showImport: false,

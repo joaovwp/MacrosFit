@@ -6,12 +6,46 @@ import {
   exportMeal, exportMealInstance, importMeal,
   getAllRegisteredFoods, updateHistoryFoodMacros, updateHistoryFoodName, softDeleteFood
 } from '../state/mutations.js';
-import { uid, dateKey, emptyDay, normalize } from '../core/utils.js';
+import { uid, dateKey, emptyDay, normalize, calculateMacrosFromDistribution, calculateBMR, calculateTDEE } from '../core/utils.js';
 import { ensureGoalsForm } from '../components/settings/goalsForm.js';
 import { ensureBiometricsForm } from '../components/settings/biometricsForm.js';
 import { render, scheduleRender, setTextInputActive } from './render.js';
 import * as authApi from '../api/auth.js';
 import * as profileApi from '../api/profile.js';
+import { MACRO_DISTRIBUTIONS, CALORIE_GOALS } from '../core/constants.js';
+import { macroDonut } from '../components/shared/macroDonut.js';
+
+function updateInputValue(field, value) {
+  const input = document.querySelector(`input[data-field="${field}"]`);
+  if (input) {
+    input.value = value;
+  }
+}
+
+function updateMacroDonut(protein, carbs, fat) {
+  const donutCard = document.getElementById('macro-distribution-card');
+  if (!donutCard) return;
+  
+  const donut = donutCard.querySelector('.donut');
+  if (!donut) return;
+  
+  const p = Math.max(0, protein * 4), c = Math.max(0, carbs * 4), f = Math.max(0, fat * 9);
+  const total = p + c + f;
+  let grad;
+  if (total <= 0) {
+    grad = "var(--surface2)";
+  } else {
+    const p1 = (p / total) * 100, p2 = p1 + (c / total) * 100;
+    grad = `conic-gradient(var(--protein) 0 ${p1}%, var(--carbs) ${p1}% ${p2}%, var(--fat) ${p2}% 100%)`;
+  }
+  
+  donut.style.background = grad;
+  
+  const kcalText = donut.querySelector('.mono');
+  if (kcalText) {
+    kcalText.textContent = Math.round(total);
+  }
+}
 
 export function setupEventHandlers(state, root) {
   window.appState = state;
@@ -23,7 +57,7 @@ export function setupEventHandlers(state, root) {
       case "set-tab":
         window.appState.tab = el.dataset.tab;
         localStorage.setItem('ft-current-tab', window.appState.tab);
-        if (window.appState.tab === "metas") { window.appState.goalsForm = null; window.appState.goalsSaved = false; window.appState.confirmDelete = false; }
+        if (window.appState.tab === "metas") { window.appState.goalsForm = null; window.appState.goalsSaved = false; window.appState.confirmDelete = false; window.appState.showMacroSuggestions = false; window.appState.selectedCalorieGoal = null; window.appState.selectedMacroDistribution = null; }
         if (window.appState.tab === "perfil") { window.appState.biometricsForm = null; window.appState.biometricsSaved = false; }
         if (window.appState.tab === "historico") { window.appState.selectedKey = null; }
         if (window.appState.tab === "config") { window.appState.importExport.showImport = false; window.appState.importExport.showMealImport = false; }
@@ -242,9 +276,14 @@ export function setupEventHandlers(state, root) {
       case "goals-save": {
         ensureGoalsForm(window.appState);
         const f = window.appState.goalsForm;
-        if (!f.calories || !f.protein || !f.carbs || !f.fat) break;
+        if (!f.calories || (typeof f.calories === 'string' && f.calories.trim() === "")) break;
         (async () => {
-          await saveGoals(window.appState, { calories: parseFloat(f.calories), protein: parseFloat(f.protein), carbs: parseFloat(f.carbs), fat: parseFloat(f.fat) });
+          await saveGoals(window.appState, { 
+            calories: parseFloat(f.calories), 
+            protein: f.protein ? parseFloat(f.protein) : null, 
+            carbs: f.carbs ? parseFloat(f.carbs) : null, 
+            fat: f.fat ? parseFloat(f.fat) : null 
+          });
           window.appState.goalsSaved = true; render(window.appState);
           setTimeout(() => { window.appState.goalsSaved = false; render(window.appState); }, 1800);
         })();
@@ -629,6 +668,45 @@ export function setupEventHandlers(state, root) {
       const v = parseFloat(el.value);
       updateExtras(window.appState, { ...today, weight: isNaN(v) ? null : v });
       render(window.appState);
+    }
+    if (el.dataset.action === "calorie-goal-select") {
+      const goalId = el.value;
+      const goal = CALORIE_GOALS.find(g => g.id === goalId);
+      if (!goal) return;
+      
+      const bio = window.appState.profile.biometrics;
+      if (!bio || !bio.weight || !bio.height || !bio.birthDate || !bio.gender || !bio.activityLevel) return;
+      
+      const bmr = calculateBMR(bio.weight, bio.height, bio.birthDate, bio.gender);
+      const tdee = calculateTDEE(bmr, bio.activityLevel);
+      if (!tdee) return;
+      
+      ensureGoalsForm(window.appState);
+      window.appState.goalsForm.calories = String(tdee + goal.delta);
+      window.appState.selectedCalorieGoal = goalId;
+      
+      updateInputValue("calories", window.appState.goalsForm.calories);
+    }
+    if (el.dataset.action === "macro-distribution-select") {
+      const distId = el.value;
+      const distribution = MACRO_DISTRIBUTIONS.find(d => d.id === distId);
+      if (!distribution) return;
+      
+      ensureGoalsForm(window.appState);
+      const weight = window.appState.profile.biometrics?.weight;
+      const macros = calculateMacrosFromDistribution(window.appState.goalsForm.calories, distribution, weight);
+      
+      if (macros) {
+        window.appState.goalsForm.protein = String(macros.protein);
+        window.appState.goalsForm.carbs = String(macros.carbs);
+        window.appState.goalsForm.fat = String(macros.fat);
+        window.appState.selectedMacroDistribution = distId;
+        
+        updateInputValue("protein", window.appState.goalsForm.protein);
+        updateInputValue("carbs", window.appState.goalsForm.carbs);
+        updateInputValue("fat", window.appState.goalsForm.fat);
+        updateMacroDonut(macros.protein, macros.carbs, macros.fat);
+      }
     }
     if (el.dataset.action === "bio-input") {
       ensureBiometricsForm(window.appState); window.appState.biometricsForm[el.dataset.field] = el.value;
