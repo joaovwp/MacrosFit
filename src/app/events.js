@@ -22,7 +22,9 @@ export function setupEventHandlers(state, root) {
     switch (action) {
       case "set-tab":
         window.appState.tab = el.dataset.tab;
-        if (window.appState.tab === "metas") { window.appState.goalsForm = null; window.appState.biometricsForm = null; window.appState.goalsSaved = false; window.appState.confirmDelete = false; }
+        localStorage.setItem('ft-current-tab', window.appState.tab);
+        if (window.appState.tab === "metas") { window.appState.goalsForm = null; window.appState.goalsSaved = false; window.appState.confirmDelete = false; }
+        if (window.appState.tab === "perfil") { window.appState.biometricsForm = null; window.appState.biometricsSaved = false; }
         if (window.appState.tab === "historico") { window.appState.selectedKey = null; }
         if (window.appState.tab === "config") { window.appState.importExport.showImport = false; window.appState.importExport.showMealImport = false; }
         render(window.appState);
@@ -60,9 +62,9 @@ export function setupEventHandlers(state, root) {
           savedNew = window.appState.qa.saveToLib;
         }
         (async () => {
-          await addEntry(window.appState, { id: uid(), name, grams, ...totals, per100, time: Date.now() }, savedNew);
+          await addEntry(window.appState, { id: uid(), name, grams, ...totals, per100, time: Date.now() }, savedNew, window.appState.qa.targetDate);
           window.appState.qa.msg = `${name} adicionado`;
-          window.appState.qa = { name: "", grams: "", manualOpen: false, manual: { kcal: "", protein: "", carbs: "", fat: "" }, saveToLib: true, showSuggest: false, msg: window.appState.qa.msg };
+          window.appState.qa = { name: "", grams: "", mealType: window.appState.qa.mealType, targetDate: null, manualOpen: false, manual: { kcal: "", protein: "", carbs: "", fat: "" }, saveToLib: true, showSuggest: false, msg: "" };
           render(window.appState);
           setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
         })();
@@ -260,9 +262,9 @@ export function setupEventHandlers(state, root) {
             gender: f.gender,
             activityLevel: f.activityLevel
           });
-          window.appState.qa.msg = "Dados biológicos salvos";
+          window.appState.biometricsSaved = true;
           render(window.appState);
-          setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
+          setTimeout(() => { window.appState.biometricsSaved = false; render(window.appState); }, 1800);
         })();
         break;
       }
@@ -344,14 +346,24 @@ export function setupEventHandlers(state, root) {
               await authApi.signIn(email, password);
             }
             const user = await authApi.getCurrentUser();
+            if (!user) throw new Error('Usuário não encontrado após login');
+
             window.appState.auth.user = user;
             window.appState.auth.loading = false;
-            window.appState.tab = "hoje";
 
-            // Reload profile from Supabase after signup/login
+            // Carregar perfil diretamente para garantir dados corretos
+            const { getProfile } = await import('../api/profile.js');
+            const profile = await getProfile();
+            window.appState.profile = profile;
+
+            // Carregar outros dados
             const { loadAll } = await import('../core/storage.js');
             const loaded = await loadAll();
-            window.appState.profile = loaded.profile;
+            window.appState.library = loaded.library;
+            window.appState.diary = loaded.diary;
+
+            window.appState.tab = localStorage.getItem('ft-current-tab') || 'hoje';
+            window.appState.connectionError = null;
 
             render(window.appState);
           } catch (e) {
@@ -391,6 +403,7 @@ export function setupEventHandlers(state, root) {
         break;
       case "profile-cancel-edit":
         window.appState.profileTab.editing = false;
+        window.appState.profileTab.saved = false;
         window.appState.profileTab.form = {
           displayName: '',
           email: '',
@@ -414,8 +427,10 @@ export function setupEventHandlers(state, root) {
             }
             window.appState.profile.display_name = displayName;
             window.appState.profileTab.editing = false;
+            window.appState.profileTab.saved = true;
             window.appState.connectionError = null;
             render(window.appState);
+            setTimeout(() => { window.appState.profileTab.saved = false; render(window.appState); }, 1800);
           } catch (e) {
             window.appState.connectionError = 'Erro ao salvar perfil: ' + e.message;
             render(window.appState);
@@ -429,6 +444,7 @@ export function setupEventHandlers(state, root) {
         break;
       case "profile-cancel-change-password":
         window.appState.profileTab.showChangePassword = false;
+        window.appState.profileTab.passwordChanged = false;
         window.appState.profileTab.form.currentPassword = '';
         window.appState.profileTab.form.newPassword = '';
         window.appState.profileTab.form.confirmPassword = '';
@@ -448,12 +464,13 @@ export function setupEventHandlers(state, root) {
           try {
             await authApi.updatePassword(newPassword);
             window.appState.profileTab.showChangePassword = false;
+            window.appState.profileTab.passwordChanged = true;
             window.appState.profileTab.form.currentPassword = '';
             window.appState.profileTab.form.newPassword = '';
             window.appState.profileTab.form.confirmPassword = '';
             window.appState.connectionError = null;
-            alert("Senha alterada com sucesso");
             render(window.appState);
+            setTimeout(() => { window.appState.profileTab.passwordChanged = false; render(window.appState); }, 1800);
           } catch (e) {
             window.appState.connectionError = 'Erro ao alterar senha: ' + e.message;
             render(window.appState);
@@ -528,6 +545,9 @@ export function setupEventHandlers(state, root) {
           scheduleRender(window.appState);
         }
         break;
+      case "qa-date-input":
+        window.appState.qa.targetDate = el.value || null;
+        break;
       case "qa-manual-input":
         window.appState.qa.manual[el.dataset.field] = el.value;
         scheduleRender(window.appState);
@@ -548,10 +568,6 @@ export function setupEventHandlers(state, root) {
         break;
       case "goal-input":
         ensureGoalsForm(window.appState); window.appState.goalsForm[el.dataset.field] = el.value;
-        scheduleRender(window.appState);
-        break;
-      case "bio-input":
-        ensureBiometricsForm(window.appState); window.appState.biometricsForm[el.dataset.field] = el.value;
         scheduleRender(window.appState);
         break;
       case "profile-display-name-input":
@@ -612,6 +628,10 @@ export function setupEventHandlers(state, root) {
       const today = window.appState.diary[dateKey(new Date())] || emptyDay();
       const v = parseFloat(el.value);
       updateExtras(window.appState, { ...today, weight: isNaN(v) ? null : v });
+      render(window.appState);
+    }
+    if (el.dataset.action === "bio-input") {
+      ensureBiometricsForm(window.appState); window.appState.biometricsForm[el.dataset.field] = el.value;
       render(window.appState);
     }
   });

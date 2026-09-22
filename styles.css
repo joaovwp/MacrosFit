@@ -45,7 +45,7 @@ body { font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; color
 .suggest { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.4); max-height: 220px; overflow-y: auto; }
 .suggest-item { padding: 8px 10px; font-size: 13.5px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
 .suggest-item:hover { background: var(--surface); }
-.cal-cell { aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--borderSoft); cursor: default; position: relative; background: none; padding: 0; font-family: inherit; }
+.cal-cell { min-height: 55px; border-radius: 6px; border: 1px solid var(--borderSoft); cursor: default; position: relative; background: none; padding: 0; font-family: inherit; }
 .cal-cell.has-data { cursor: pointer; }
 .cal-cell.has-data:hover { border-color: var(--calories); }
 .cal-cell.selected { box-shadow: 0 0 0 1px var(--calories); }

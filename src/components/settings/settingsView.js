@@ -1,10 +1,9 @@
 import { toggleSwitch } from '../shared/toggleSwitch.js';
-import { biometricsFormHTML } from './biometricsForm.js';
 import { goalsFormHTML } from './goalsForm.js';
+import { extrasBarHTML } from '../today/extrasBar.js';
 
 export function settingsViewHTML(state) {
   return `<div style="display:flex;flex-direction:column;gap:16px">
-    ${biometricsFormHTML(state)}
     ${goalsFormHTML(state)}
     <div class="card" style="padding:16px">
       <div style="font-weight:700;font-size:15px;margin-bottom:4px">Acompanhamento extra</div>
@@ -15,5 +14,6 @@ export function settingsViewHTML(state) {
           ${toggleSwitch(state.profile.settings[key], "settings-toggle", key)}
         </div>`).join("")}
     </div>
+    ${extrasBarHTML(state.profile.settings, state.diary)}
   </div>`;
 }

@@ -51,7 +51,7 @@ export function mapProfileFromDB(profile) {
   if (!profile) return null;
 
   return {
-    displayName: profile.display_name,
+    displayName: profile.display_name || profile.email?.split('@')[0] || 'Usuário',
     goals: {
       calories: profile.calories,
       protein: profile.protein,

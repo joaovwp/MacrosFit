@@ -1,5 +1,6 @@
 import { icon } from '../../core/icons.js';
 import { esc } from '../../core/utils.js';
+import { biometricsFormHTML } from '../settings/biometricsForm.js';
 
 export function profileViewHTML(state) {
   const user = state.auth.user;
@@ -33,21 +34,27 @@ export function profileViewHTML(state) {
         <div style="display:flex;flex-direction:column;gap:12px">
           <div>
             <label style="font-size:12px;color:var(--textMuted);margin-bottom:4px;display:block">Nome</label>
-            <input class="input" type="text" value="${esc(form.displayName)}" data-action="profile-display-name-input"/>
+            <input class="input" type="text" value="${esc(form.displayName || profile.displayName || '')}" data-action="profile-display-name-input"/>
           </div>
           <div>
             <label style="font-size:12px;color:var(--textMuted);margin-bottom:4px;display:block">E-mail</label>
-            <input class="input" type="email" value="${esc(form.email)}" data-action="profile-email-input"/>
+            <input class="input" type="email" value="${esc(form.email || user.email || '')}" data-action="profile-email-input"/>
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-primary" data-action="profile-save">Salvar</button>
+            ${state.profileTab.saved ? `<span style="font-size:12.5px;color:var(--good)">salvo</span>` : ""}
             <button class="btn" data-action="profile-cancel-edit">Cancelar</button>
           </div>
         </div>
       ` : `
-        <button class="btn" data-action="profile-edit">Editar perfil</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn" data-action="profile-edit">Editar perfil</button>
+          <button class="btn" data-action="profile-logout">Sair da conta</button>
+        </div>
       `}
     </div>
+
+    ${biometricsFormHTML(state)}
 
     <div class="card" style="padding:20px">
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Segurança</div>
@@ -73,8 +80,9 @@ export function profileViewHTML(state) {
             <label style="font-size:12px;color:var(--textMuted);margin-bottom:4px;display:block">Confirmar nova senha</label>
             <input class="input" type="password" value="${esc(form.confirmPassword)}" data-action="profile-confirm-password-input"/>
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-primary" data-action="profile-change-password">Alterar senha</button>
+            ${state.profileTab.passwordChanged ? `<span style="font-size:12.5px;color:var(--good)">senha alterada</span>` : ""}
             <button class="btn" data-action="profile-cancel-change-password">Cancelar</button>
           </div>
         </div>
@@ -91,7 +99,5 @@ export function profileViewHTML(state) {
         </div>
       </div>
     ` : ''}
-
-    <button class="btn" data-action="profile-logout" style="margin-top:8px">Sair da conta</button>
   </div>`;
 }

@@ -34,6 +34,21 @@ export async function getProfile() {
     return mapProfileFromDB(newProfile);
   }
 
+  // Se perfil existe mas não tem display_name, atualizar com email
+  if (!data.display_name && user.email) {
+    const display_name = user.email.split('@')[0];
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from('profiles')
+      .update({ display_name })
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (!updateError) {
+      return mapProfileFromDB(updatedProfile);
+    }
+  }
+
   return mapProfileFromDB(data);
 }
 

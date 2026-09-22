@@ -23,8 +23,9 @@ export function todayKey() {
   return dateKey(new Date());
 }
 
-export async function addEntry(state, entry, saveToLib) {
-  await updateDiaryDay(state, todayKey(), (day) => {
+export async function addEntry(state, entry, saveToLib, targetDate) {
+  const date = targetDate || todayKey();
+  await updateDiaryDay(state, date, (day) => {
     const updatedEntry = { ...entry, mealType: state.qa.mealType };
     return { ...day, entries: [...day.entries, updatedEntry] };
   });
@@ -127,6 +128,7 @@ export async function resetAll(state) {
     name: "",
     grams: "",
     mealType: "cafe",
+    targetDate: null,
     manualOpen: false,
     manual: { kcal: "", protein: "", carbs: "", fat: "" },
     saveToLib: true,

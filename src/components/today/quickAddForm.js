@@ -20,13 +20,17 @@ export function quickAddFormHTML(state) {
       <div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Tipo de refeição</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${MEAL_TYPES.map((mt) => `
-          <button type="button" class="chip" data-action="qa-meal-select" data-meal="${mt.id}" 
+          <button type="button" class="chip" data-action="qa-meal-select" data-meal="${mt.id}"
             style="${state.qa.mealType === mt.id ? "border-color:var(--calories);background:var(--calories);color:#17140A" : ""}">
             ${icon(mt.icon, 12, state.qa.mealType === mt.id ? "#17140A" : "var(--textMuted)")}
             ${esc(mt.label)}
           </button>
         `).join("")}
       </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Data (opcional)</div>
+      <input class="input" type="date" value="${esc(state.qa.targetDate || "")}" data-action="qa-date-input" placeholder="Hoje"/>
     </div>
     ${recent.length ? `<div class="ft-scroll" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">
       ${recent.map((r, i) => `<div class="chip" data-action="qa-pick-recent" data-index="${i}">${esc(r.name)}</div>`).join("")}

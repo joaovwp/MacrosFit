@@ -52,11 +52,11 @@ export function calendarMonthHTML(state) {
           }
           
           dayDetails = `
-            <div style="position:absolute;bottom:3px;right:3px;display:flex;flex-direction:column;gap:2px;font-size:9px;text-align:right;">
-              <div style="color:var(--calories);font-weight:600">${Math.round(t.kcal)} kcal</div>
-              <div style="color:var(--protein)">P: ${Math.round(t.protein)}g</div>
-              <div style="color:var(--carbs)">C: ${Math.round(t.carbs)}g</div>
-              <div style="color:var(--fat)">G: ${Math.round(t.fat)}g</div>
+            <div style="position:absolute;bottom:2px;right:2px;display:flex;flex-direction:column;gap:1px;font-size:8px;text-align:right;line-height:1.1;">
+              <div style="color:var(--calories);font-weight:600">${Math.round(t.kcal)}</div>
+              <div style="color:var(--protein)">P:${Math.round(t.protein)}</div>
+              <div style="color:var(--carbs)">C:${Math.round(t.carbs)}</div>
+              <div style="color:var(--fat)">G:${Math.round(t.fat)}</div>
             </div>
           `;
         }
@@ -67,7 +67,7 @@ export function calendarMonthHTML(state) {
         }
         
         return `<button type="button" class="cal-cell ${hasData ? "has-data" : ""} ${state.selectedKey === key ? "selected" : ""}"
-          style="${cellStyle};min-height:65px"
+          style="${cellStyle}"
           data-action="cal-select-day" data-key="${key}" ${hasData ? "" : "disabled"}>
           <span style="position:absolute;top:3px;left:5px;font-size:10.5px;color:${dayColor}">${d}</span>
           ${dayDetails}

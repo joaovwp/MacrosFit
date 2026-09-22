@@ -9,6 +9,7 @@ export const initialState = {
     name: "",
     grams: "",
     mealType: "cafe",
+    targetDate: null,
     manualOpen: false,
     manual: { kcal: "", protein: "", carbs: "", fat: "" },
     saveToLib: true,
@@ -37,6 +38,7 @@ export const initialState = {
   },
   appSettings: { theme: "dark", language: "pt-BR" },
   biometricsForm: null,
+  biometricsSaved: false,
   expandedMeals: {},
   historyPeriod: 21,
   historyView: "overview",
@@ -51,6 +53,8 @@ export const initialState = {
   },
   profileTab: {
     editing: false,
+    saved: false,
+    passwordChanged: false,
     form: {
       displayName: '',
       email: '',

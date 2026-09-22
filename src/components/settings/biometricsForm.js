@@ -53,6 +53,9 @@ export function biometricsFormHTML(state) {
       <div>BMR: ${Math.round(bmr)} kcal/dia</div>
       ${tdee ? `<div>TDEE: ${tdee} kcal/dia (manutenção)</div>` : ""}
     </div>` : ""}
-    <button class="btn btn-primary" data-action="bio-save">Salvar dados biológicos</button>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-primary" data-action="bio-save">Salvar dados biológicos</button>
+      ${state.biometricsSaved ? `<span style="font-size:12.5px;color:var(--good)">dados salvos</span>` : ""}
+    </div>
   </div>`;
 }

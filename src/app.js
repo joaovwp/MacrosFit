@@ -34,7 +34,7 @@ async function loadUserData(state, user) {
 
     state.profile = profile;
     state.auth.user = user;
-    state.tab = 'hoje';
+    state.tab = localStorage.getItem('ft-current-tab') || 'hoje';
     state.connectionError = null;
 
     // Load data from Supabase
@@ -56,29 +56,28 @@ async function init() {
 
   const state = { ...initialState };
 
-  // Setup e renderização inicial
+  // Setup de eventos antes de renderizar
   const root = document.getElementById("root");
   setupEventHandlers(state, root);
-  render(state);
 
-  // Bootstrap único de auth
+  // Verificar autenticação antes de renderizar
   try {
     const user = await getCurrentUser();
     if (user) {
       await loadUserData(state, user);
-      render(state);
     } else {
       state.tab = 'auth';
       state.auth.mode = 'login';
-      render(state);
     }
   } catch (e) {
     console.error('Error checking auth:', e);
     state.tab = 'auth';
     state.auth.mode = 'login';
     state.auth.error = 'Sessão expirada, entre novamente';
-    render(state);
   }
+
+  // Renderizar apenas após verificar autenticação
+  render(state);
 
   // onAuthStateChange só atualiza sessão em memória
   onAuthStateChange(async (event, session) => {
