@@ -68,10 +68,6 @@ export function setupEventHandlers(state, root) {
         window.appState.sidebarOpen = !window.appState.sidebarOpen;
         render(window.appState);
         break;
-      case "collapse-sidebar":
-        window.appState.sidebarCollapsed = !window.appState.sidebarCollapsed;
-        render(window.appState);
-        break;
       case "set-tab":
         window.appState.tab = el.dataset.tab;
         localStorage.setItem('ft-current-tab', window.appState.tab);
@@ -751,37 +747,6 @@ export function setupEventHandlers(state, root) {
           scheduleRender(window.appState);
         }
       }, 250);
-    }
-  });
-  
-  // Sidebar resize (desktop)
-  root.addEventListener("mousedown", (ev) => {
-    const resizeHandle = ev.target.closest("[data-action='resize-sidebar']");
-    if (resizeHandle) {
-      isResizing = true;
-      startX = ev.clientX;
-      const sidebar = document.querySelector(".sidebar");
-      startWidth = sidebar ? sidebar.offsetWidth : 220;
-      ev.preventDefault();
-    }
-  });
-  
-  document.addEventListener("mousemove", (ev) => {
-    if (isResizing) {
-      const diff = ev.clientX - startX;
-      const newWidth = Math.max(64, Math.min(400, startWidth + diff));
-      const sidebar = document.querySelector(".sidebar");
-      const mainContent = document.querySelector(".main-content");
-      if (sidebar) sidebar.style.width = newWidth + "px";
-      if (mainContent) mainContent.style.marginLeft = newWidth + "px";
-    }
-  });
-  
-  document.addEventListener("mouseup", () => {
-    if (isResizing) {
-      isResizing = false;
-      window.appState.sidebarCollapsed = false;
-      render(window.appState);
     }
   });
   

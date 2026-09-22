@@ -21,24 +21,19 @@ export function appHTML(state) {
 
   return `
     <div class="app-container">
-      <!-- Mobile Navbar -->
-      <div class="mobile-navbar">
-        <button class="mobile-menu-btn" data-action="toggle-sidebar">
+      <!-- Navbar -->
+      <div class="navbar">
+        <button class="menu-btn" data-action="toggle-sidebar">
           ${icon("menu", 20)}
         </button>
-        <div class="mobile-title">MacrosFit</div>
+        <div class="nav-title">MacrosFit</div>
       </div>
       
-      <!-- Mobile Swipe Area -->
-      <div class="mobile-swipe-area" data-action="toggle-sidebar"></div>
+      <!-- Swipe Area -->
+      <div class="swipe-area" data-action="toggle-sidebar"></div>
       
       <!-- Sidebar -->
-      <aside class="sidebar ${state.sidebarCollapsed ? 'collapsed' : ''} ${state.sidebarOpen ? 'open' : ''}">
-        <div class="sidebar-header">
-          <button class="collapse-btn" data-action="collapse-sidebar">
-            ${icon("chevron-left", 16)}
-          </button>
-        </div>
+      <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}">
         <nav class="sidebar-nav">
           ${TABS.map((t) => `
             <button class="nav-item ${state.tab === t.id ? 'active' : ''}" data-action="set-tab" data-tab="${t.id}">
@@ -51,7 +46,6 @@ export function appHTML(state) {
             <span class="nav-label">Perfil</span>
           </button>
         </nav>
-        <div class="sidebar-resize-handle" data-action="resize-sidebar"></div>
       </aside>
       
       <!-- Overlay -->
