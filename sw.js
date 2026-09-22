@@ -1,4 +1,4 @@
-const CACHE_NAME = 'MacrosFit-v4';
+const CACHE_NAME = 'MacrosFit-v5';
 const ASSETS = [
   '/',
   '/index.html',
