@@ -1,5 +1,5 @@
-const CACHE_NAME = 'MacrosFit-v5';
-const ASSETS = [
+const CACHE_NAME = 'MacrosFit-static-v1';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
@@ -7,13 +7,16 @@ const ASSETS = [
   '/icons/icon-512x512.png'
 ];
 
+// Não cachear arquivos dinâmicos (JS, CSS)
+const DYNAMIC_EXTENSIONS = ['.js', '.css'];
+
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[SW] Caching assets');
-        return cache.addAll(ASSETS);
+        console.log('[SW] Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
       })
       .then(() => {
         console.log('[SW] Skip waiting');
@@ -53,12 +56,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Ignorar arquivos dinâmicos - network-first
+  const isDynamic = DYNAMIC_EXTENSIONS.some(ext => url.pathname.endsWith(ext));
+  if (isDynamic) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   // Only cache GET requests from own origin
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
     event.respondWith(fetch(event.request));
     return;
   }
 
+  // Cache apenas assets estáticos
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
