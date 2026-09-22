@@ -3,6 +3,8 @@ export const initialState = {
   library: {},
   diary: {},
   tab: "hoje",
+  sidebarCollapsed: false,
+  sidebarOpen: false,
   viewMonth: new Date(),
   selectedKey: null,
   qa: {

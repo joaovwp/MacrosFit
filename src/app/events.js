@@ -49,11 +49,29 @@ function updateMacroDonut(protein, carbs, fat) {
 
 export function setupEventHandlers(state, root) {
   window.appState = state;
+  
+  // Sidebar resize logic
+  let isResizing = false;
+  let startX = 0;
+  let startWidth = 0;
+  
+  // Mobile swipe logic
+  let touchStartX = 0;
+  let touchEndX = 0;
+  
   root.addEventListener("click", (ev) => {
     const el = ev.target.closest("[data-action]");
     if (!el) return;
     const action = el.dataset.action;
     switch (action) {
+      case "toggle-sidebar":
+        window.appState.sidebarOpen = !window.appState.sidebarOpen;
+        render(window.appState);
+        break;
+      case "collapse-sidebar":
+        window.appState.sidebarCollapsed = !window.appState.sidebarCollapsed;
+        render(window.appState);
+        break;
       case "set-tab":
         window.appState.tab = el.dataset.tab;
         localStorage.setItem('ft-current-tab', window.appState.tab);
@@ -61,6 +79,7 @@ export function setupEventHandlers(state, root) {
         if (window.appState.tab === "perfil") { window.appState.biometricsForm = null; window.appState.biometricsSaved = false; }
         if (window.appState.tab === "historico") { window.appState.selectedKey = null; }
         if (window.appState.tab === "config") { window.appState.importExport.showImport = false; window.appState.importExport.showMealImport = false; }
+        window.appState.sidebarOpen = false;
         render(window.appState);
         break;
       case "qa-pick-recent": {
@@ -734,4 +753,58 @@ export function setupEventHandlers(state, root) {
       }, 250);
     }
   });
+  
+  // Sidebar resize (desktop)
+  root.addEventListener("mousedown", (ev) => {
+    const resizeHandle = ev.target.closest("[data-action='resize-sidebar']");
+    if (resizeHandle) {
+      isResizing = true;
+      startX = ev.clientX;
+      const sidebar = document.querySelector(".sidebar");
+      startWidth = sidebar ? sidebar.offsetWidth : 220;
+      ev.preventDefault();
+    }
+  });
+  
+  document.addEventListener("mousemove", (ev) => {
+    if (isResizing) {
+      const diff = ev.clientX - startX;
+      const newWidth = Math.max(64, Math.min(400, startWidth + diff));
+      const sidebar = document.querySelector(".sidebar");
+      const mainContent = document.querySelector(".main-content");
+      if (sidebar) sidebar.style.width = newWidth + "px";
+      if (mainContent) mainContent.style.marginLeft = newWidth + "px";
+    }
+  });
+  
+  document.addEventListener("mouseup", () => {
+    if (isResizing) {
+      isResizing = false;
+      window.appState.sidebarCollapsed = false;
+      render(window.appState);
+    }
+  });
+  
+  // Mobile swipe
+  root.addEventListener("touchstart", (ev) => {
+    touchStartX = ev.changedTouches[0].screenX;
+  }, { passive: true });
+  
+  root.addEventListener("touchend", (ev) => {
+    touchEndX = ev.changedTouches[0].screenX;
+    handleSwipe();
+  }, { passive: true });
+  
+  function handleSwipe() {
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && window.appState.sidebarOpen) {
+        window.appState.sidebarOpen = false;
+        render(window.appState);
+      } else if (diff < 0 && !window.appState.sidebarOpen) {
+        window.appState.sidebarOpen = true;
+        render(window.appState);
+      }
+    }
+  }
 }

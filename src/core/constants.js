@@ -22,11 +22,11 @@ export const ACTIVITY_LEVELS = [
 ];
 
 export const TABS = [
-  { id: "hoje", label: "Hoje" },
-  { id: "historico", label: "Histórico" },
-  { id: "alimentos", label: "Alimentos" },
-  { id: "metas", label: "Metas" },
-  { id: "config", label: "Configurações" }
+  { id: "hoje", label: "Hoje", icon: "sun" },
+  { id: "historico", label: "Histórico", icon: "trending-up" },
+  { id: "alimentos", label: "Alimentos", icon: "list-plus" },
+  { id: "metas", label: "Metas", icon: "check" },
+  { id: "config", label: "Configurações", icon: "sparkles" }
 ];
 
 // LIMITES DE VALIDAÇÃO
