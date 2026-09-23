@@ -36,7 +36,6 @@ export const initialState = {
     showImport: false,
     showExport: false,
     importData: "",
-    showMealImport: false,
     mealImportData: ""
   },
   appSettings: { theme: "dark", language: "pt-BR" },

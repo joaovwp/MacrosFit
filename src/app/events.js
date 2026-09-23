@@ -74,7 +74,7 @@ export function setupEventHandlers(state, root) {
         if (window.appState.tab === "metas") { window.appState.goalsForm = null; window.appState.goalsSaved = false; window.appState.confirmDelete = false; window.appState.showMacroSuggestions = false; window.appState.selectedCalorieGoal = null; window.appState.selectedMacroDistribution = null; }
         if (window.appState.tab === "perfil") { window.appState.biometricsForm = null; window.appState.biometricsSaved = false; }
         if (window.appState.tab === "historico") { window.appState.selectedKey = null; }
-        if (window.appState.tab === "config") { window.appState.importExport.showImport = false; window.appState.importExport.showMealImport = false; }
+        if (window.appState.tab === "config") { window.appState.importExport.showImport = false; }
         window.appState.sidebarOpen = false;
         render(window.appState);
         break;
@@ -347,12 +347,6 @@ export function setupEventHandlers(state, root) {
           await importData(window.appState);
           render(window.appState);
         })();
-        break;
-      case "show-meal-import":
-        window.appState.importExport.showMealImport = true; window.appState.importExport.mealImportData = ""; render(window.appState);
-        break;
-      case "cancel-meal-import":
-        window.appState.importExport.showMealImport = false; window.appState.importExport.mealImportData = ""; render(window.appState);
         break;
       case "import-meal":
         (async () => {

@@ -65,5 +65,32 @@ export function quickAddFormHTML(state) {
       <button class="btn btn-primary" data-action="qa-submit" ${canSubmit ? "" : "disabled"}>${icon("plus", 15)} Adicionar</button>
       ${state.qa.msg ? `<span style="font-size:12.5px;color:var(--good)">${esc(state.qa.msg)}</span>` : ""}
     </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--borderSoft)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        ${icon("upload", 17, "var(--calories)")}
+        <div style="font-weight:700;font-size:15px">Importar refeição</div>
+      </div>
+      <textarea class="input" placeholder="Cole o JSON da refeição aqui..." style="min-height:100px;font-family:monospace;font-size:12px;resize:vertical;margin-bottom:12px" data-action="meal-import-text-input">${esc(state.importExport.mealImportData || "")}</textarea>
+      <div style="background:var(--surface2);padding:8px;border-radius:6px;font-size:10px;color:var(--textMuted);margin-bottom:12px;overflow-x:auto">
+        <div style="font-size:11px;color:var(--textFaint);margin-bottom:4px">Exemplo:</div>
+        <pre style="margin:0;white-space:pre-wrap;font-size:9px">{
+  "mealType": "almoco",
+  "mealName": "Almoço",
+  "items": [
+    {
+      "name": "Arroz",
+      "grams": 100,
+      "kcal": 130,
+      "protein": 2.7,
+      "carbs": 28,
+      "fat": 0.3
+    }
+  ]
+}</pre>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" data-action="import-meal">${icon("upload", 14)} Importar refeição</button>
+      </div>
+    </div>
   </div>`;
 }

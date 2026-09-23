@@ -393,7 +393,6 @@ export async function importMeal(state) {
 
     await updateDiaryDay(state, todayKey(), () => ({ ...today, entries: updatedEntries }));
 
-    state.importExport.showMealImport = false;
     state.importExport.mealImportData = "";
     state.qa.msg = `Refeição importada com sucesso! (${mealData.items.length} itens)`;
   } catch (e) {

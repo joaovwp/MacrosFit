@@ -3,9 +3,9 @@ import { hojeTabHTML } from '../views/hojeTab.js';
 import { historicoTabHTML } from '../views/historicoTab.js';
 import { alimentosTabHTML } from '../views/alimentosTab.js';
 import { metasTabHTML } from '../views/metasTab.js';
+import { perfilTabHTML } from '../views/perfilTab.js';
 import { configTabHTML } from '../views/configTab.js';
 import { authViewHTML } from '../components/auth/authView.js';
-import { profileViewHTML } from '../components/profile/profileView.js';
 import { icon } from '../core/icons.js';
 
 export function appHTML(state) {
@@ -41,10 +41,6 @@ export function appHTML(state) {
               <span class="nav-label">${t.label}</span>
             </button>
           `).join('')}
-          <button class="nav-item ${state.tab === 'perfil' ? 'active' : ''}" data-action="set-tab" data-tab="perfil">
-            ${icon("user", 18, state.tab === 'perfil' ? "var(--calories)" : "var(--textMuted)")}
-            <span class="nav-label">Perfil</span>
-          </button>
         </nav>
       </aside>
       
@@ -63,8 +59,8 @@ export function appHTML(state) {
         ${state.tab === "historico" ? historicoTabHTML(state) : ""}
         ${state.tab === "alimentos" ? alimentosTabHTML(state) : ""}
         ${state.tab === "metas" ? metasTabHTML(state) : ""}
+        ${state.tab === "perfil" ? perfilTabHTML(state) : ""}
         ${state.tab === "config" ? configTabHTML(state) : ""}
-        ${state.tab === "perfil" ? profileViewHTML(state) : ""}
       </main>
     </div>
   `;

@@ -26,6 +26,7 @@ export const TABS = [
   { id: "historico", label: "Histórico", icon: "trending-up" },
   { id: "alimentos", label: "Alimentos", icon: "list-plus" },
   { id: "metas", label: "Metas", icon: "check" },
+  { id: "perfil", label: "Perfil", icon: "user" },
   { id: "config", label: "Configurações", icon: "sparkles" }
 ];
 
