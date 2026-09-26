@@ -1,4 +1,5 @@
 import { initialState } from './state/state.js';
+import { initializeState, getState } from './state/appState.js';
 import { loadAll, persist, clearAppData } from './core/storage.js';
 import { render } from './app/render.js';
 import { setupEventHandlers } from './app/events.js';
@@ -54,11 +55,12 @@ async function loadUserData(state, user) {
 async function init() {
   cleanupOldKeys();
 
-  const state = { ...initialState };
+  // Inicializar estado encapsulado
+  const state = initializeState();
 
   // Setup de eventos antes de renderizar
   const root = document.getElementById("root");
-  setupEventHandlers(state, root);
+  setupEventHandlers(root);
 
   // Verificar autenticação antes de renderizar
   try {

@@ -5,6 +5,8 @@ import * as userFoodsApi from '../api/user_foods.js';
 import * as mealsApi from '../api/meals.js';
 import * as authApi from '../api/auth.js';
 import { mapUserFoodToDB, mapUserFoodFromDB } from '../utils/mapper.js';
+import { handleError } from '../core/errorHandler.js';
+import { showNotification } from './appState.js';
 
 const DEFAULT_PROFILE = {
   goals: null,
@@ -79,8 +81,9 @@ export async function createUserFood(state, foodData) {
 
     return created;
   } catch (e) {
-    state.connectionError = 'Erro ao criar alimento: ' + e.message;
-    throw e;
+    const error = handleError(e, 'createUserFood');
+    state.connectionError = error.message;
+    throw error;
   }
 }
 
@@ -127,8 +130,9 @@ export async function createUserFoodWithDetection(state, foodData, inputGrams) {
       ...finalData
     });
   } catch (e) {
-    state.connectionError = 'Erro ao criar alimento: ' + e.message;
-    throw e;
+    const error = handleError(e, 'createUserFoodWithDetection');
+    state.connectionError = error.message;
+    throw error;
   }
 }
 
@@ -197,8 +201,9 @@ export async function updateUserFood(state, id, foodData, inputGrams) {
 
     return updated;
   } catch (e) {
-    state.connectionError = 'Erro ao atualizar alimento: ' + e.message;
-    throw e;
+    const error = handleError(e, 'updateUserFood');
+    state.connectionError = error.message;
+    throw error;
   }
 }
 
@@ -284,8 +289,9 @@ export async function saveCompleteMeal(state, date, mealType) {
     state.connectionError = null;
     return meal;
   } catch (e) {
-    state.connectionError = 'Erro ao salvar refeição: ' + e.message;
-    throw e;
+    const error = handleError(e, 'saveCompleteMeal');
+    state.connectionError = error.message;
+    throw error;
   }
 }
 export async function addMealItem(state, itemData, date, mealType) {
@@ -333,8 +339,9 @@ export async function addMealItem(state, itemData, date, mealType) {
 
     return mealItem;
   } catch (e) {
-    state.connectionError = 'Erro ao adicionar item: ' + e.message;
-    throw e;
+    const error = handleError(e, 'addMealItem');
+    state.connectionError = error.message;
+    throw error;
   }
 }
 
@@ -376,8 +383,9 @@ export async function deleteEntry(state, id) {
 
     state.connectionError = null;
   } catch (e) {
-    state.connectionError = 'Erro ao deletar item: ' + e.message;
-    throw e;
+    const error = handleError(e, 'deleteMealItem');
+    state.connectionError = error.message;
+    throw error;
   }
 }
 
@@ -425,8 +433,9 @@ export async function editEntryGrams(state, id, newGrams) {
 
     state.connectionError = null;
   } catch (e) {
-    state.connectionError = 'Erro ao editar item: ' + e.message;
-    throw e;
+    const error = handleError(e, 'editEntryGrams');
+    state.connectionError = error.message;
+    throw error;
   }
 }
 
@@ -441,8 +450,9 @@ export async function deleteFood(state, id) {
     await persist('library', state.library);
     state.connectionError = null;
   } catch (e) {
-    state.connectionError = 'Erro ao deletar alimento: ' + e.message;
-    throw e;
+    const error = handleError(e, 'deleteFood');
+    state.connectionError = error.message;
+    throw error;
   }
 }
 
@@ -619,20 +629,21 @@ export async function importData(state) {
     state.importExport.importData = "";
     state.qa.msg = "Dados importados com sucesso!";
   } catch (e) {
-    alert("Erro ao importar dados: " + e.message);
+    const error = handleError(e, 'importData');
+    showNotification(error.message, 'error');
   }
 }
 
 export function exportMeal(state, mealType, dateKeyStr) {
   const day = state.diary[dateKeyStr];
   if (!day || !day.entries) {
-    alert("Não há alimentos neste dia para exportar");
+    showNotification("Não há alimentos neste dia para exportar", 'error');
     return;
   }
 
   const mealEntries = day.entries.filter(e => e.mealType === mealType);
   if (mealEntries.length === 0) {
-    alert("Não há alimentos nesta refeição para exportar");
+    showNotification("Não há alimentos nesta refeição para exportar", 'error');
     return;
   }
 
@@ -724,6 +735,7 @@ export async function importMeal(state) {
     state.importExport.mealImportData = "";
     state.qa.msg = `Refeição importada com sucesso! (${mealData.items.length} itens)`;
   } catch (e) {
-    alert("Erro ao importar refeição: " + e.message);
+    const error = handleError(e, 'importMeal');
+    showNotification(error.message, 'error');
   }
 }

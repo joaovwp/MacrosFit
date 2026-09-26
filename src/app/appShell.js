@@ -7,6 +7,7 @@ import { profileViewHTML } from '../components/profile/profileView.js';
 import { configViewHTML } from '../components/config/configView.js';
 import { authViewHTML } from '../components/auth/authView.js';
 import { icon } from '../core/icons.js';
+import { esc } from '../core/utils.js';
 
 export function appHTML(state) {
   // Check if user is authenticated
@@ -54,6 +55,7 @@ export function appHTML(state) {
           <div class="mono" style="font-size:11.5px;color:var(--textFaint);text-transform:capitalize">${new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div>
         </div>
         ${state.connectionError ? `<div style="background:var(--error);color:white;padding:12px;border-radius:4px;margin-bottom:12px;font-size:13px">${state.connectionError}</div>` : ''}
+        ${state.notification ? `<div style="background:${state.notification.type === 'error' ? 'var(--error)' : state.notification.type === 'success' ? 'var(--calories)' : 'var(--textMuted)'};color:white;padding:12px;border-radius:4px;margin-bottom:12px;font-size:13px">${esc(state.notification.message)}</div>` : ''}
         
         ${state.tab === "hoje" ? hojeTabHTML(state) : ""}
         ${state.tab === "historico" ? historicoTabHTML(state) : ""}

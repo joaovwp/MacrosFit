@@ -67,25 +67,27 @@ export function profileViewHTML(state) {
     ${state.profileTab.showChangePassword ? `
       <div class="card" style="padding:20px;background:var(--surface2)">
         <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Alterar senha</div>
-        <div style="display:flex;flex-direction:column;gap:12px">
+        <form style="display:flex;flex-direction:column;gap:12px" onsubmit="return false" autocomplete="off">
+          <input type="text" name="username" style="display:none" tabindex="-1" autocomplete="off"/>
+          <input type="password" name="password" style="display:none" tabindex="-1" autocomplete="off"/>
           <div>
             <label style="font-size:12px;color:var(--textMuted);margin-bottom:4px;display:block">Senha atual</label>
-            <input class="input" type="password" value="${esc(form.currentPassword)}" data-action="profile-current-password-input"/>
+            <input class="input" type="password" value="${esc(form.currentPassword)}" data-action="profile-current-password-input" autocomplete="off" name="current-password"/>
           </div>
           <div>
             <label style="font-size:12px;color:var(--textMuted);margin-bottom:4px;display:block">Nova senha</label>
-            <input class="input" type="password" value="${esc(form.newPassword)}" data-action="profile-new-password-input"/>
+            <input class="input" type="password" value="${esc(form.newPassword)}" data-action="profile-new-password-input" autocomplete="off" name="new-password"/>
           </div>
           <div>
             <label style="font-size:12px;color:var(--textMuted);margin-bottom:4px;display:block">Confirmar nova senha</label>
-            <input class="input" type="password" value="${esc(form.confirmPassword)}" data-action="profile-confirm-password-input"/>
+            <input class="input" type="password" value="${esc(form.confirmPassword)}" data-action="profile-confirm-password-input" autocomplete="off" name="confirm-password"/>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-primary" data-action="profile-change-password">Alterar senha</button>
             ${state.profileTab.passwordChanged ? `<span style="font-size:12.5px;color:var(--good)">senha alterada</span>` : ""}
             <button class="btn" data-action="profile-cancel-change-password">Cancelar</button>
           </div>
-        </div>
+        </form>
       </div>
     ` : ''}
 

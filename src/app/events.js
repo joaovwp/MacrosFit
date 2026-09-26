@@ -5,13 +5,15 @@ import {
   exportMeal, importMeal, createUserFood, createUserFoodWithDetection, updateUserFood,
   addTemporaryMealItem, removeTemporaryMealItem, clearTemporaryMealItems, saveCompleteMeal
 } from '../state/mutations.js';
-import { uid, dateKey, emptyDay, normalize, calculateMacrosFromDistribution, calculateBMR, calculateTDEE, round } from '../core/utils.js';
+import { uid, dateKey, emptyDay, normalize, calculateMacrosFromDistribution, calculateBMR, calculateTDEE, round, esc } from '../core/utils.js';
 import { ensureGoalsForm } from '../components/settings/goalsForm.js';
 import { ensureBiometricsForm } from '../components/settings/biometricsForm.js';
 import { render } from './render.js';
 import * as authApi from '../api/auth.js';
 import * as profileApi from '../api/profile.js';
 import { MACRO_DISTRIBUTIONS, CALORIE_GOALS } from '../core/constants.js';
+import { handleError } from '../core/errorHandler.js';
+import { getState, showNotification, clearNotification } from '../state/appState.js';
 
 function updateInputValue(field, value) {
   const input = document.querySelector(`input[data-field="${field}"]`);
@@ -20,8 +22,8 @@ function updateInputValue(field, value) {
   }
 }
 
-export function setupEventHandlers(state, root) {
-  window.appState = state;
+export function setupEventHandlers(root) {
+  // Estado encapsulado, acessível via getState()
 
   root.addEventListener("click", (ev) => {
     const el = ev.target.closest("[data-action]");
@@ -29,63 +31,65 @@ export function setupEventHandlers(state, root) {
     const action = el.dataset.action;
     switch (action) {
       case "toggle-sidebar":
-        window.appState.sidebarOpen = !window.appState.sidebarOpen;
-        render(window.appState);
+        const state = getState();
+        state.sidebarOpen = !state.sidebarOpen;
+        render(state);
         break;
       case "set-tab":
-        window.appState.tab = el.dataset.tab;
-        localStorage.setItem('ft-current-tab', window.appState.tab);
-        if (window.appState.tab === "metas") { window.appState.goalsForm = null; window.appState.goalsSaved = false; window.appState.confirmDelete = false; window.appState.selectedCalorieGoal = null; window.appState.selectedMacroDistribution = null; }
-        if (window.appState.tab === "perfil") { window.appState.biometricsForm = null; window.appState.biometricsSaved = false; }
-        if (window.appState.tab === "historico") { window.appState.selectedKey = null; }
-        if (window.appState.tab === "config") { window.appState.importExport.showImport = false; }
-        window.appState.sidebarOpen = false;
-        render(window.appState);
+        const state2 = getState();
+        state2.tab = el.dataset.tab;
+        localStorage.setItem('ft-current-tab', state2.tab);
+        if (state2.tab === "metas") { state2.goalsForm = null; state2.goalsSaved = false; state2.confirmDelete = false; state2.selectedCalorieGoal = null; state2.selectedMacroDistribution = null; }
+        if (state2.tab === "perfil") { state2.biometricsForm = null; state2.biometricsSaved = false; }
+        if (state2.tab === "historico") { state2.selectedKey = null; }
+        if (state2.tab === "config") { state2.importExport.showImport = false; }
+        state2.sidebarOpen = false;
+        render(state2);
         break;
       case "qa-pick-recent": {
-        const item = recentFoods(window.appState)[Number(el.dataset.index)];
-        if (item) { window.appState.qa.name = item.name; window.appState.qa.grams = String(item.grams); window.appState.qa.manualOpen = false; window.appState.qa.showSuggest = false; render(window.appState); }
+        const item = recentFoods(getState())[Number(el.dataset.index)];
+        if (item) { getState().qa.name = item.name; getState().qa.grams = String(item.grams); getState().qa.manualOpen = false; getState().qa.showSuggest = false; render(getState()); }
         break;
       }
       case "qa-pick-suggestion": {
-        const food = window.appState.library[el.dataset.id];
+        const food = getState().library[el.dataset.id];
         if (food) { 
-          window.appState.qa.name = food.name; 
-          window.appState.qa.grams = "100"; // Set default grams to 100
-          window.appState.qa.manualOpen = false; 
-          window.appState.qa.showSuggest = false; 
-          render(window.appState); 
+          getState().qa.name = food.name; 
+          getState().qa.grams = "100"; // Set default grams to 100
+          getState().qa.manualOpen = false; 
+          getState().qa.showSuggest = false; 
+          render(getState()); 
         }
         break;
       }
       case "qa-meal-select":
-        window.appState.qa.mealType = el.dataset.meal; render(window.appState);
+        getState().qa.mealType = el.dataset.meal; render(getState());
         break;
       case "qa-open-manual":
-        window.appState.qa.manualOpen = true; render(window.appState);
+        getState().qa.manualOpen = true; render(getState());
         break;
       case "qa-open-manual-cancel":
-        window.appState.qa.manualOpen = false; render(window.appState);
+        getState().qa.manualOpen = false; render(getState());
         break;
       case "qa-new-food-mode":
-        window.appState.qa.newFoodMode = true;
-        window.appState.qa.newFoodForm = {
-          name: window.appState.qa.name,
-          kcal: window.appState.qa.manual.kcal,
-          protein: window.appState.qa.manual.protein,
-          carbs: window.appState.qa.manual.carbs,
-          fat: window.appState.qa.manual.fat,
-          grams: window.appState.qa.grams
+        getState().qa.newFoodMode = true;
+        getState().qa.newFoodForm = {
+          name: getState().qa.name,
+          kcal: getState().qa.manual.kcal,
+          protein: getState().qa.manual.protein,
+          carbs: getState().qa.manual.carbs,
+          fat: getState().qa.manual.fat,
+          grams: getState().qa.grams
         };
-        render(window.appState);
+        render(getState());
         break;
       case "qa-new-food-cancel":
-        window.appState.qa.newFoodMode = false;
-        window.appState.qa.newFoodForm = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
-        render(window.appState);
+        getState().qa.newFoodMode = false;
+        getState().qa.newFoodForm = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
+        render(getState());
         break;
       case "qa-new-food-submit": {
-        const f = window.appState.qa.newFoodForm;
+        const f = getState().qa.newFoodForm;
         if (!f.name.trim() || !f.kcal) break;
         (async () => {
           try {
@@ -100,14 +104,14 @@ export function setupEventHandlers(state, root) {
 
             // Validação antes de enviar
             if (foodData.kcal <= 0) {
-              window.appState.qa.msg = "kcal deve ser maior que 0";
-              render(window.appState);
-              setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
+              getState().qa.msg = "kcal deve ser maior que 0";
+              render(getState());
+              setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 1800);
               return;
             }
 
             // Usar detecção automática genérica
-            const created = await createUserFoodWithDetection(window.appState, foodData, inputGrams);
+            const created = await createUserFoodWithDetection(getState(), foodData, inputGrams);
 
             // Adicionar imediatamente à refeição com os valores originais informados
             const totals = {
@@ -122,7 +126,7 @@ export function setupEventHandlers(state, root) {
               carbs: created.carbs,
               fat: created.fat
             };
-            addTemporaryMealItem(window.appState, { 
+            addTemporaryMealItem(getState(), { 
               id: uid(), 
               food_id: created.id, 
               name: created.name, 
@@ -132,132 +136,132 @@ export function setupEventHandlers(state, root) {
             });
 
             // Limpar formulário
-            window.appState.qa.name = "";
-            window.appState.qa.grams = "";
-            window.appState.qa.newFoodMode = false;
-            window.appState.qa.newFoodForm = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
-            window.appState.qa.msg = "Alimento cadastrado e adicionado!";
-            render(window.appState);
-            setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
+            getState().qa.name = "";
+            getState().qa.grams = "";
+            getState().qa.newFoodMode = false;
+            getState().qa.newFoodForm = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
+            getState().qa.msg = "Alimento cadastrado e adicionado!";
+            render(getState());
+            setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 1800);
           } catch (e) {
-            console.error('Error creating food:', e);
-            window.appState.qa.msg = "Erro ao cadastrar alimento: " + e.message;
-            render(window.appState);
-            setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 3000);
+            const error = handleError(e, 'qa-new-food-submit');
+            getState().qa.msg = error.message;
+            render(getState());
+            setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 3000);
           }
         })();
         break;
       }
       case "qa-add-item": {
-        const name = window.appState.qa.name.trim();
-        const grams = parseFloat(window.appState.qa.grams) || 0;
+        const name = getState().qa.name.trim();
+        const grams = parseFloat(getState().qa.grams) || 0;
         if (!name || grams <= 0) break;
-        const basis = qaBasis(window.appState);
+        const basis = qaBasis(getState());
         let totals, per100, food_id = null;
         if (basis) {
-          const n = normalize(window.appState.qa.name);
-          const exact = Object.values(window.appState.library).find((f) => normalize(f.name) === n);
+          const n = normalize(getState().qa.name);
+          const exact = Object.values(getState().library).find((f) => normalize(f.name) === n);
           food_id = exact ? exact.id : null;
           totals = { kcal: (basis.kcal * grams) / 100, protein: (basis.protein * grams) / 100, carbs: (basis.carbs * grams) / 100, fat: (basis.fat * grams) / 100 };
           per100 = basis;
         } else {
-          const k = parseFloat(window.appState.qa.manual.kcal) || 0;
+          const k = parseFloat(getState().qa.manual.kcal) || 0;
           if (k <= 0) break;
-          totals = { kcal: k, protein: parseFloat(window.appState.qa.manual.protein) || 0, carbs: parseFloat(window.appState.qa.manual.carbs) || 0, fat: parseFloat(window.appState.qa.manual.fat) || 0 };
+          totals = { kcal: k, protein: parseFloat(getState().qa.manual.protein) || 0, carbs: parseFloat(getState().qa.manual.carbs) || 0, fat: parseFloat(getState().qa.manual.fat) || 0 };
           per100 = { kcal: (totals.kcal / grams) * 100, protein: (totals.protein / grams) * 100, carbs: (totals.carbs / grams) * 100, fat: (totals.fat / grams) * 100 };
         }
-        addTemporaryMealItem(window.appState, { id: uid(), food_id, name, grams, ...totals, per100 });
-        window.appState.qa.name = "";
-        window.appState.qa.grams = "";
-        window.appState.qa.manualOpen = false;
-        window.appState.qa.manual = { kcal: "", protein: "", carbs: "", fat: "" };
-        window.appState.qa.showSuggest = false;
-        window.appState.qa.newFoodForm = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
-        window.appState.qa.conversionWarning = null;
-        render(window.appState);
+        addTemporaryMealItem(getState(), { id: uid(), food_id, name, grams, ...totals, per100 });
+        getState().qa.name = "";
+        getState().qa.grams = "";
+        getState().qa.manualOpen = false;
+        getState().qa.manual = { kcal: "", protein: "", carbs: "", fat: "" };
+        getState().qa.showSuggest = false;
+        getState().qa.newFoodForm = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
+        getState().qa.conversionWarning = null;
+        render(getState());
         break;
       }
       case "qa-remove-temp-item": {
         const index = Number(el.dataset.index);
-        removeTemporaryMealItem(window.appState, window.appState.qa.currentMealItems[index].id);
-        render(window.appState);
+        removeTemporaryMealItem(getState(), getState().qa.currentMealItems[index].id);
+        render(getState());
         break;
       }
       case "qa-clear-meal": {
-        clearTemporaryMealItems(window.appState);
-        render(window.appState);
+        clearTemporaryMealItems(getState());
+        render(getState());
         break;
       }
       case "qa-save-meal": {
         (async () => {
           try {
-            await saveCompleteMeal(window.appState, window.appState.qa.targetDate || dateKey(new Date()), window.appState.qa.mealType);
-            window.appState.qa.msg = "Refeição registrada com sucesso!";
-            render(window.appState);
-            setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 1800);
+            await saveCompleteMeal(getState(), getState().qa.targetDate || dateKey(new Date()), getState().qa.mealType);
+            getState().qa.msg = "Refeição registrada com sucesso!";
+            render(getState());
+            setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 1800);
           } catch (e) {
-            console.error('Error saving meal:', e);
-            window.appState.qa.msg = "Erro ao registrar refeição: " + e.message;
-            render(window.appState);
-            setTimeout(() => { window.appState.qa.msg = ""; render(window.appState); }, 3000);
+            const error = handleError(e, 'qa-save-meal');
+            getState().qa.msg = error.message;
+            render(getState());
+            setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 3000);
           }
         })();
         break;
       }
       case "entry-edit-start":
-        window.appState.entryEdit = { id: el.dataset.id, val: el.dataset.grams };
-        render(window.appState);
+        getState().entryEdit = { id: el.dataset.id, val: el.dataset.grams };
+        render(getState());
         break;
       case "entry-edit-confirm": {
-        const v = parseFloat(window.appState.entryEdit.val);
+        const v = parseFloat(getState().entryEdit.val);
         (async () => {
-          await editEntryGrams(window.appState, el.dataset.id, isNaN(v) ? Number(el.dataset.fallback) : v);
-          window.appState.entryEdit = { id: null, val: "" };
-          render(window.appState);
+          await editEntryGrams(getState(), el.dataset.id, isNaN(v) ? Number(el.dataset.fallback) : v);
+          getState().entryEdit = { id: null, val: "" };
+          render(getState());
         })();
         break;
       }
       case "entry-edit-cancel":
-        window.appState.entryEdit = { id: null, val: "" };
-        render(window.appState);
+        getState().entryEdit = { id: null, val: "" };
+        render(getState());
         break;
       case "entry-delete":
         (async () => {
-          await deleteEntry(window.appState, el.dataset.id);
-          render(window.appState);
+          await deleteEntry(getState(), el.dataset.id);
+          render(getState());
         })();
         break;
       case "toggle-meal":
         const mealKey = el.dataset.mealKey;
-        window.appState.expandedMeals[mealKey] = !window.appState.expandedMeals[mealKey];
-        render(window.appState);
+        getState().expandedMeals[mealKey] = !getState().expandedMeals[mealKey];
+        render(getState());
         break;
       case "cal-prev":
-        window.appState.viewMonth = new Date(window.appState.viewMonth.getFullYear(), window.appState.viewMonth.getMonth() - 1, 1); render(window.appState);
+        getState().viewMonth = new Date(getState().viewMonth.getFullYear(), getState().viewMonth.getMonth() - 1, 1); render(getState());
         break;
       case "cal-next":
-        window.appState.viewMonth = new Date(window.appState.viewMonth.getFullYear(), window.appState.viewMonth.getMonth() + 1, 1); render(window.appState);
+        getState().viewMonth = new Date(getState().viewMonth.getFullYear(), getState().viewMonth.getMonth() + 1, 1); render(getState());
         break;
       case "cal-select-day":
-        window.appState.selectedKey = el.dataset.key; render(window.appState);
+        getState().selectedKey = el.dataset.key; render(getState());
         break;
       case "daydetail-close":
-        window.appState.selectedKey = null; render(window.appState);
+        getState().selectedKey = null; render(getState());
         break;
       case "trend-set-metric":
-        window.appState.trendMetric = el.dataset.metric; render(window.appState);
+        getState().trendMetric = el.dataset.metric; render(getState());
         break;
       case "set-period":
-        window.appState.historyPeriod = parseInt(el.dataset.period); render(window.appState);
+        getState().historyPeriod = parseInt(el.dataset.period); render(getState());
         break;
       case "lib-toggle-add":
-        window.appState.lib.adding = !window.appState.lib.adding; window.appState.lib.editingId = null; window.appState.lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" }; window.appState.lib.conversionWarning = null; render(window.appState);
+        getState().lib.adding = !getState().lib.adding; getState().lib.editingId = null; getState().lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" }; getState().lib.conversionWarning = null; render(getState());
         break;
       case "lib-cancel-add":
-        window.appState.lib.adding = false; window.appState.lib.editingId = null; window.appState.lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" }; window.appState.lib.conversionWarning = null; render(window.appState);
+        getState().lib.adding = false; getState().lib.editingId = null; getState().lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" }; getState().lib.conversionWarning = null; render(getState());
         break;
       case "lib-submit": {
-        const f = window.appState.lib.form;
+        const f = getState().lib.form;
         if (!f.name.trim() || !f.kcal) break;
         (async () => {
           try {
@@ -271,39 +275,39 @@ export function setupEventHandlers(state, root) {
             const inputGrams = parseFloat(f.grams) || 100;
 
             // Se estiver editando, chama updateUserFood. Se não, cria novo.
-            if (window.appState.lib.editingId) {
-              await updateUserFood(window.appState, window.appState.lib.editingId, foodData, inputGrams);
+            if (getState().lib.editingId) {
+              await updateUserFood(getState(), getState().lib.editingId, foodData, inputGrams);
             } else {
-              await createUserFoodWithDetection(window.appState, foodData, inputGrams);
+              await createUserFoodWithDetection(getState(), foodData, inputGrams);
             }
 
-            window.appState.lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
-            window.appState.lib.editingId = null;
-            window.appState.lib.adding = false;
-            window.appState.lib.conversionWarning = null;
-            render(window.appState);
+            getState().lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
+            getState().lib.editingId = null;
+            getState().lib.adding = false;
+            getState().lib.conversionWarning = null;
+            render(getState());
           } catch (e) {
-            console.error('Error saving food:', e);
-            window.appState.lib.adding = true; // Keep form open on error
-            render(window.appState);
+            const error = handleError(e, 'lib-submit');
+            getState().lib.adding = true; // Keep form open on error
+            render(getState());
           }
         })();
         break;
       }
       case "lib-edit": {
-        const f = window.appState.library[el.dataset.id];
-        if (f) { window.appState.lib.editingId = f.id; window.appState.lib.form = { name: f.name, kcal: String(f.kcal), protein: String(f.protein), carbs: String(f.carbs), fat: String(f.fat), grams: "" }; window.appState.lib.adding = true; render(window.appState); }
+        const f = getState().library[el.dataset.id];
+        if (f) { getState().lib.editingId = f.id; getState().lib.form = { name: f.name, kcal: String(f.kcal), protein: String(f.protein), carbs: String(f.carbs), fat: String(f.fat), grams: "" }; getState().lib.adding = true; render(getState()); }
         break;
       }
       case "lib-delete":
         (async () => {
-          await deleteFood(window.appState, el.dataset.id);
-          render(window.appState);
+          await deleteFood(getState(), el.dataset.id);
+          render(getState());
         })();
         break;
       case "goals-save": {
-        ensureGoalsForm(window.appState);
-        const f = window.appState.goalsForm;
+        ensureGoalsForm(getState());
+        const f = getState().goalsForm;
         if (!f.calories || (typeof f.calories === 'string' && f.calories.trim() === "")) break;
         (async () => {
           await profileApi.updateGoals({
@@ -312,20 +316,20 @@ export function setupEventHandlers(state, root) {
             carbs: f.carbs ? parseFloat(f.carbs) : null,
             fat: f.fat ? parseFloat(f.fat) : null
           });
-          window.appState.profile.goals = {
+          getState().profile.goals = {
             calories: parseFloat(f.calories),
             protein: f.protein ? parseFloat(f.protein) : null,
             carbs: f.carbs ? parseFloat(f.carbs) : null,
             fat: f.fat ? parseFloat(f.fat) : null
           };
-          window.appState.goalsSaved = true; render(window.appState);
-          setTimeout(() => { window.appState.goalsSaved = false; render(window.appState); }, 1800);
+          getState().goalsSaved = true; render(getState());
+          setTimeout(() => { getState().goalsSaved = false; render(getState()); }, 1800);
         })();
         break;
       }
       case "bio-save": {
-        ensureBiometricsForm(window.appState);
-        const f = window.appState.biometricsForm;
+        ensureBiometricsForm(getState());
+        const f = getState().biometricsForm;
         if (!f.weight || !f.height || !f.birthDate || !f.gender || !f.activityLevel) break;
         (async () => {
           await profileApi.updateBiometrics({
@@ -335,74 +339,74 @@ export function setupEventHandlers(state, root) {
             gender: f.gender,
             activity_level: f.activityLevel
           });
-          window.appState.profile.biometrics = {
+          getState().profile.biometrics = {
             weight: parseFloat(f.weight),
             height: parseFloat(f.height),
             birthDate: f.birthDate,
             gender: f.gender,
             activityLevel: f.activityLevel
           };
-          window.appState.biometricsSaved = true;
-          render(window.appState);
-          setTimeout(() => { window.appState.biometricsSaved = false; render(window.appState); }, 1800);
+          getState().biometricsSaved = true;
+          render(getState());
+          setTimeout(() => { getState().biometricsSaved = false; render(getState()); }, 1800);
         })();
         break;
       }
-      case "reset-ask": window.appState.confirmDelete = true; render(window.appState); break;
-      case "reset-cancel": window.appState.confirmDelete = false; render(window.appState); break;
-      case "reset-confirm": (async () => { await resetAll(window.appState); render(window.appState); })(); break;
+      case "reset-ask": getState().confirmDelete = true; render(getState()); break;
+      case "reset-cancel": getState().confirmDelete = false; render(getState()); break;
+      case "reset-confirm": (async () => { await resetAll(getState()); render(getState()); })(); break;
       case "export-data":
-        exportData(window.appState);
+        exportData(getState());
         break;
       case "show-import":
-        window.appState.importExport.showImport = true; window.appState.importExport.importData = ""; render(window.appState);
+        getState().importExport.showImport = true; getState().importExport.importData = ""; render(getState());
         break;
       case "cancel-import":
-        window.appState.importExport.showImport = false; window.appState.importExport.importData = ""; render(window.appState);
+        getState().importExport.showImport = false; getState().importExport.importData = ""; render(getState());
         break;
       case "import-data":
         (async () => {
-          await importData(window.appState);
-          render(window.appState);
+          await importData(getState());
+          render(getState());
         })();
         break;
       case "import-meal":
         (async () => {
-          await importMeal(window.appState);
-          render(window.appState);
+          await importMeal(getState());
+          render(getState());
         })();
         break;
       case "export-meal":
-        exportMeal(window.appState, el.dataset.meal, dateKey(new Date()));
+        exportMeal(getState(), el.dataset.meal, dateKey(new Date()));
         break;
       case "auth-toggle-mode":
-        window.appState.auth.mode = window.appState.auth.mode === 'login' ? 'signup' : 'login';
-        window.appState.auth.error = null;
-        render(window.appState);
+        getState().auth.mode = getState().auth.mode === 'login' ? 'signup' : 'login';
+        getState().auth.error = null;
+        render(getState());
         break;
       case "auth-submit": {
-        const { email, password, displayName } = window.appState.auth;
+        const { email, password, displayName } = getState().auth;
         if (!email || !password) {
-          window.appState.auth.error = "Preencha e-mail e senha";
-          render(window.appState);
+          getState().auth.error = "Preencha e-mail e senha";
+          render(getState());
           break;
         }
-        if (window.appState.auth.mode === 'signup' && !displayName) {
-          window.appState.auth.error = "Preencha seu nome";
-          render(window.appState);
+        if (getState().auth.mode === 'signup' && !displayName) {
+          getState().auth.error = "Preencha seu nome";
+          render(getState());
           break;
         }
-        window.appState.auth.loading = true;
-        window.appState.auth.error = null;
-        render(window.appState);
+        getState().auth.loading = true;
+        getState().auth.error = null;
+        render(getState());
         (async () => {
           try {
-            if (window.appState.auth.mode === 'signup') {
+            if (getState().auth.mode === 'signup') {
               const result = await authApi.signUp(email, password, displayName);
               if (result.requiresConfirmation) {
-                window.appState.auth.loading = false;
-                window.appState.auth.error = "Verifique seu e-mail para confirmar a conta";
-                render(window.appState);
+                getState().auth.loading = false;
+                getState().auth.error = "Verifique seu e-mail para confirmar a conta";
+                render(getState());
                 return;
               }
             } else {
@@ -411,168 +415,200 @@ export function setupEventHandlers(state, root) {
             const user = await authApi.getCurrentUser();
             if (!user) throw new Error('Usuário não encontrado após login');
 
-            window.appState.auth.user = user;
-            window.appState.auth.loading = false;
+            getState().auth.user = user;
+            getState().auth.loading = false;
 
             const { getProfile } = await import('../api/profile.js');
             const profile = await getProfile();
-            window.appState.profile = profile;
+            getState().profile = profile;
 
             const { loadAll } = await import('../core/storage.js');
             const loaded = await loadAll();
-            window.appState.library = loaded.library;
-            window.appState.diary = loaded.diary;
+            getState().library = loaded.library;
+            getState().diary = loaded.diary;
 
-            window.appState.tab = localStorage.getItem('ft-current-tab') || 'hoje';
-            window.appState.connectionError = null;
+            getState().tab = localStorage.getItem('ft-current-tab') || 'hoje';
+            getState().connectionError = null;
 
-            render(window.appState);
+            render(getState());
           } catch (e) {
-            window.appState.auth.loading = false;
-            window.appState.auth.error = e.message || "Erro ao autenticar";
-            render(window.appState);
+            const error = handleError(e, 'auth-submit');
+            getState().auth.loading = false;
+            getState().auth.error = error.message;
+            render(getState());
           }
         })();
         break;
       }
       case "auth-reset-password": {
-        const email = window.appState.auth.email;
+        const email = getState().auth.email;
         if (!email) {
-          window.appState.auth.error = "Preencha seu e-mail";
-          render(window.appState);
+          getState().auth.error = "Preencha seu e-mail";
+          render(getState());
           break;
         }
         (async () => {
           try {
             await authApi.resetPasswordForEmail(email);
-            window.appState.auth.error = null;
-            window.appState.auth.loading = false;
-            alert("E-mail de recuperação enviado");
-            render(window.appState);
+            getState().auth.error = null;
+            getState().auth.loading = false;
+            showNotification("E-mail de recuperação enviado", 'success');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           } catch (e) {
-            window.appState.auth.error = e.message || "Erro ao enviar e-mail";
-            render(window.appState);
+            const error = handleError(e, 'auth-reset-password');
+            getState().auth.error = error.message;
+            render(getState());
           }
         })();
         break;
       }
       case "profile-edit":
-        window.appState.profileTab.editing = true;
-        window.appState.profileTab.form.displayName = window.appState.profile.display_name || '';
-        window.appState.profileTab.form.email = window.appState.auth.user?.email || '';
-        render(window.appState);
+        getState().profileTab.editing = true;
+        getState().profileTab.form.displayName = getState().profile.display_name || '';
+        getState().profileTab.form.email = getState().auth.user?.email || '';
+        render(getState());
         break;
       case "profile-cancel-edit":
-        window.appState.profileTab.editing = false;
-        window.appState.profileTab.form = { displayName: '', email: '', currentPassword: '', newPassword: '', confirmPassword: '' };
-        render(window.appState);
+        getState().profileTab.editing = false;
+        getState().profileTab.form = { displayName: '', email: '', currentPassword: '', newPassword: '', confirmPassword: '' };
+        render(getState());
+        break;
+      case "profile-logout":
+        (async () => {
+          try {
+            await authApi.signOut();
+            getState().auth.user = null;
+            getState().auth.mode = 'login';
+            getState().tab = 'auth';
+            render(getState());
+          } catch (e) {
+            const error = handleError(e, 'profile-logout');
+            showNotification(error.message, 'error');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
+          }
+        })();
         break;
       case "profile-save": {
-        const { displayName, email } = window.appState.profileTab.form;
+        const { displayName, email } = getState().profileTab.form;
         
         // Validar email com regex
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (email && !emailRegex.test(email)) {
-          alert('E-mail inválido');
-          render(window.appState);
+          showNotification('E-mail inválido', 'error');
+          render(getState());
+          setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           break;
         }
         
         (async () => {
           try {
-            if (displayName && displayName !== window.appState.profile.display_name) {
+            if (displayName && displayName !== getState().profile.display_name) {
               await profileApi.updateProfile({ display_name: displayName });
-              window.appState.profile.display_name = displayName;
+              getState().profile.display_name = displayName;
             }
-            if (email && email !== window.appState.auth.user?.email) {
+            if (email && email !== getState().auth.user?.email) {
               await authApi.updateEmail(email);
-              window.appState.auth.user.email = email;
+              getState().auth.user.email = email;
             }
-            window.appState.profileTab.editing = false;
-            window.appState.profileTab.saved = true;
-            render(window.appState);
-            setTimeout(() => { window.appState.profileTab.saved = false; render(window.appState); }, 1800);
+            getState().profileTab.editing = false;
+            getState().profileTab.saved = true;
+            render(getState());
+            setTimeout(() => { getState().profileTab.saved = false; render(getState()); }, 1800);
           } catch (e) {
-            alert('Erro ao salvar perfil: ' + e.message);
-            render(window.appState);
+            const error = handleError(e, 'profile-save');
+            showNotification(error.message, 'error');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           }
         })();
         break;
       }
       case "profile-show-change-password":
-        window.appState.profileTab.showChangePassword = true;
-        window.appState.profileTab.form.currentPassword = '';
-        window.appState.profileTab.form.newPassword = '';
-        window.appState.profileTab.form.confirmPassword = '';
-        render(window.appState);
+        const passwordState = getState();
+        passwordState.profileTab.showChangePassword = true;
+        passwordState.profileTab.form = { 
+          currentPassword: '', 
+          newPassword: '', 
+          confirmPassword: '' 
+        };
+        render(passwordState);
         break;
       case "profile-cancel-change-password":
-        window.appState.profileTab.showChangePassword = false;
-        window.appState.profileTab.form.currentPassword = '';
-        window.appState.profileTab.form.newPassword = '';
-        window.appState.profileTab.form.confirmPassword = '';
-        window.appState.profileTab.passwordChanged = false;
-        render(window.appState);
+        const state3 = getState();
+        state3.profileTab.showChangePassword = false;
+        state3.profileTab.form.currentPassword = '';
+        state3.profileTab.form.newPassword = '';
+        state3.profileTab.form.confirmPassword = '';
+        state3.profileTab.passwordChanged = false;
+        render(state3);
         break;
       case "profile-change-password": {
-        const { currentPassword, newPassword, confirmPassword } = window.appState.profileTab.form;
+        const { currentPassword, newPassword, confirmPassword } = getState().profileTab.form;
         
         // Validar senha atual
         if (!currentPassword || currentPassword.trim() === '') {
-          window.appState.profileTab.passwordChanged = false;
-          alert('Preencha a senha atual');
-          render(window.appState);
+          getState().profileTab.passwordChanged = false;
+          showNotification('Preencha a senha atual', 'error');
+          render(getState());
+          setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           break;
         }
         
         // Validar nova senha
         if (!newPassword || newPassword.trim() === '') {
-          window.appState.profileTab.passwordChanged = false;
-          alert('Preencha a nova senha');
-          render(window.appState);
+          getState().profileTab.passwordChanged = false;
+          showNotification('Preencha a nova senha', 'error');
+          render(getState());
+          setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           break;
         }
         
         // Validar comprimento mínimo
         if (newPassword.length < 8) {
-          window.appState.profileTab.passwordChanged = false;
-          alert('A nova senha deve ter no mínimo 8 caracteres');
-          render(window.appState);
+          getState().profileTab.passwordChanged = false;
+          showNotification('A nova senha deve ter no mínimo 8 caracteres', 'error');
+          render(getState());
+          setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           break;
         }
         
         // Validar confirmação
         if (newPassword !== confirmPassword) {
-          window.appState.profileTab.passwordChanged = false;
-          alert('A nova senha e a confirmação não coincidem');
-          render(window.appState);
+          getState().profileTab.passwordChanged = false;
+          showNotification('A nova senha e a confirmação não coincidem', 'error');
+          render(getState());
+          setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           break;
         }
         
         (async () => {
           try {
             await authApi.updatePassword(newPassword);
-            window.appState.profileTab.showChangePassword = false;
-            window.appState.profileTab.form.currentPassword = '';
-            window.appState.profileTab.form.newPassword = '';
-            window.appState.profileTab.form.confirmPassword = '';
-            window.appState.profileTab.passwordChanged = true;
-            render(window.appState);
-            setTimeout(() => { window.appState.profileTab.passwordChanged = false; render(window.appState); }, 3000);
+            getState().profileTab.showChangePassword = false;
+            getState().profileTab.form.currentPassword = '';
+            getState().profileTab.form.newPassword = '';
+            getState().profileTab.form.confirmPassword = '';
+            getState().profileTab.passwordChanged = true;
+            render(getState());
+            setTimeout(() => { getState().profileTab.passwordChanged = false; render(getState()); }, 3000);
           } catch (e) {
-            alert('Erro ao alterar senha: ' + (e.message || 'Verifique sua senha atual'));
-            render(window.appState);
+            const error = handleError(e, 'profile-change-password');
+            showNotification(error.message, 'error');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           }
         })();
         break;
       }
       case "profile-show-delete":
-        window.appState.profileTab.showDeleteConfirm = true;
-        render(window.appState);
+        getState().profileTab.showDeleteConfirm = true;
+        render(getState());
         break;
       case "profile-cancel-delete":
-        window.appState.profileTab.showDeleteConfirm = false;
-        render(window.appState);
+        getState().profileTab.showDeleteConfirm = false;
+        render(getState());
         break;
       case "profile-confirm-deactivate": {
         (async () => {
@@ -581,8 +617,10 @@ export function setupEventHandlers(state, root) {
             await authApi.signOut();
             window.location.reload();
           } catch (e) {
-            alert('Erro ao desativar conta: ' + e.message);
-            render(window.appState);
+            const error = handleError(e, 'profile-confirm-deactivate');
+            showNotification(error.message, 'error');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           }
         })();
         break;
@@ -596,18 +634,18 @@ export function setupEventHandlers(state, root) {
     const action = el.dataset.action;
     switch (action) {
       case "qa-name-input":
-        window.appState.qa.name = el.value;
-        window.appState.qa.showSuggest = !!el.value.trim();
+        getState().qa.name = el.value;
+        getState().qa.showSuggest = !!el.value.trim();
         // Só renderiza se houver sugestões para mostrar
-        if (window.appState.qa.showSuggest) {
-          render(window.appState);
+        if (getState().qa.showSuggest) {
+          render(getState());
         }
         break;
       case "qa-grams-input":
-        window.appState.qa.grams = el.value;
+        getState().qa.grams = el.value;
         // Atualizar apenas os macros calculados sem recriar o DOM
-        const basis = qaBasis(window.appState);
-        const g = parseFloat(window.appState.qa.grams) || 0;
+        const basis = qaBasis(getState());
+        const g = parseFloat(getState().qa.grams) || 0;
         if (basis && g > 0) {
           const computed = {
             kcal: (basis.kcal * g) / 100,
@@ -619,104 +657,104 @@ export function setupEventHandlers(state, root) {
           const macrosEl = document.querySelector('[data-qa-computed-macros]');
           if (macrosEl) {
             macrosEl.innerHTML = `
-              <span class="mono" style="color:var(--calories)">${Math.round(computed.kcal)} kcal</span>
-              <span class="mono" style="color:var(--protein)">P ${round(computed.protein)}g</span>
-              <span class="mono" style="color:var(--carbs)">C ${round(computed.carbs)}g</span>
-              <span class="mono" style="color:var(--fat)">G ${round(computed.fat)}g</span>
+              <span class="mono" style="color:var(--calories)">${esc(Math.round(computed.kcal))} kcal</span>
+              <span class="mono" style="color:var(--protein)">P ${esc(round(computed.protein))}g</span>
+              <span class="mono" style="color:var(--carbs)">C ${esc(round(computed.carbs))}g</span>
+              <span class="mono" style="color:var(--fat)">G ${esc(round(computed.fat))}g</span>
             `;
           }
         }
         break;
       case "qa-date-input":
-        window.appState.qa.targetDate = el.value;
+        getState().qa.targetDate = el.value;
         break;
       case "qa-manual-input":
-        window.appState.qa.manual[el.dataset.field] = el.value;
+        getState().qa.manual[el.dataset.field] = el.value;
         // Não renderiza para não perder foco
         break;
       case "qa-new-food-input":
-        window.appState.qa.newFoodForm[el.dataset.field] = el.value;
+        getState().qa.newFoodForm[el.dataset.field] = el.value;
         // Não renderiza para não perder foco
         break;
       case "entry-edit-input":
-        window.appState.entryEdit.val = el.value;
+        getState().entryEdit.val = el.value;
         // Não renderiza para não perder foco
         break;
       case "lib-search-input":
-        window.appState.lib.query = el.value;
-        render(window.appState);
+        getState().lib.query = el.value;
+        render(getState());
         break;
       case "lib-form-input":
-        window.appState.lib.form[el.dataset.field] = el.value;
+        getState().lib.form[el.dataset.field] = el.value;
         // Não renderiza para não perder foco
         break;
       case "goal-input":
-        if (!window.appState.goalsForm) window.appState.goalsForm = { calories: "", protein: "", carbs: "", fat: "" };
-        window.appState.goalsForm[el.dataset.field] = el.value;
+        if (!getState().goalsForm) getState().goalsForm = { calories: "", protein: "", carbs: "", fat: "" };
+        getState().goalsForm[el.dataset.field] = el.value;
         // Não renderiza para não perder foco
         break;
       case "bio-input":
-        if (!window.appState.biometricsForm) window.appState.biometricsForm = { weight: "", height: "", birthDate: "", gender: "", activityLevel: "" };
-        window.appState.biometricsForm[el.dataset.field] = el.value;
+        if (!getState().biometricsForm) getState().biometricsForm = { weight: "", height: "", birthDate: "", gender: "", activityLevel: "" };
+        getState().biometricsForm[el.dataset.field] = el.value;
         // Não renderiza para não perder foco
         break;
       case "calorie-goal-select":
-        window.appState.selectedCalorieGoal = el.value;
-        const bio = window.appState.bio || window.appState.profile.biometrics;
+        getState().selectedCalorieGoal = el.value;
+        const bio = getState().bio || getState().profile.biometrics;
         if (bio && bio.weight && bio.height && bio.birthDate && bio.gender && bio.activityLevel) {
           const bmr = calculateBMR(bio.weight, bio.height, bio.birthDate, bio.gender);
           const tdee = calculateTDEE(bmr, bio.activityLevel);
           const goal = CALORIE_GOALS.find(g => g.id === el.value);
           if (goal && tdee) {
-            window.appState.goalsForm = window.appState.goalsForm || { calories: "", protein: "", carbs: "", fat: "" };
-            window.appState.goalsForm.calories = String(tdee + goal.delta);
-            render(window.appState);
+            getState().goalsForm = getState().goalsForm || { calories: "", protein: "", carbs: "", fat: "" };
+            getState().goalsForm.calories = String(tdee + goal.delta);
+            render(getState());
           }
         }
         break;
       case "macro-distribution-select":
-        window.appState.selectedMacroDistribution = el.value;
+        getState().selectedMacroDistribution = el.value;
         const dist = MACRO_DISTRIBUTIONS.find(d => d.id === el.value);
-        if (dist && window.appState.goalsForm?.calories) {
-          const bio = window.appState.profile.biometrics;
-          const macros = calculateMacrosFromDistribution(window.appState.goalsForm.calories, dist, bio?.weight);
+        if (dist && getState().goalsForm?.calories) {
+          const bio = getState().profile.biometrics;
+          const macros = calculateMacrosFromDistribution(getState().goalsForm.calories, dist, bio?.weight);
           if (macros) {
-            window.appState.goalsForm.protein = String(macros.protein);
-            window.appState.goalsForm.carbs = String(macros.carbs);
-            window.appState.goalsForm.fat = String(macros.fat);
-            render(window.appState);
+            getState().goalsForm.protein = String(macros.protein);
+            getState().goalsForm.carbs = String(macros.carbs);
+            getState().goalsForm.fat = String(macros.fat);
+            render(getState());
           }
         }
         break;
       case "import-text-input":
-        window.appState.importExport.importData = el.value;
+        getState().importExport.importData = el.value;
         break;
       case "meal-import-text-input":
-        window.appState.importExport.mealImportData = el.value;
+        getState().importExport.mealImportData = el.value;
         break;
       case "auth-email-input":
-        window.appState.auth.email = el.value;
+        getState().auth.email = el.value;
         break;
       case "auth-password-input":
-        window.appState.auth.password = el.value;
+        getState().auth.password = el.value;
         break;
       case "auth-display-name-input":
-        window.appState.auth.displayName = el.value;
+        getState().auth.displayName = el.value;
         break;
       case "profile-display-name-input":
-        window.appState.profileTab.form.displayName = el.value;
+        getState().profileTab.form.displayName = el.value;
         break;
       case "profile-email-input":
-        window.appState.profileTab.form.email = el.value;
+        getState().profileTab.form.email = el.value;
         break;
       case "profile-current-password-input":
-        window.appState.profileTab.form.currentPassword = el.value;
+        getState().profileTab.form.currentPassword = el.value;
         break;
       case "profile-new-password-input":
-        window.appState.profileTab.form.newPassword = el.value;
+        getState().profileTab.form.newPassword = el.value;
         break;
       case "profile-confirm-password-input":
-        window.appState.profileTab.form.confirmPassword = el.value;
+        getState().profileTab.form.confirmPassword = el.value;
         break;
     }
   });

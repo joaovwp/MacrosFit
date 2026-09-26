@@ -67,5 +67,6 @@ export const initialState = {
     },
     showDeleteConfirm: false
   },
-  connectionError: null
+  connectionError: null,
+  notification: null // { message: string, type: 'success' | 'error' | 'info' }
 };
