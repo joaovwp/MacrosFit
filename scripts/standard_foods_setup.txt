@@ -1,0 +1,25 @@
+-- Módulo 2: Banco de Alimentos Padrão
+-- Executar no Supabase SQL Editor
+
+-- Habilitar extensão para busca por similaridade
+create extension if not exists pg_trgm;
+
+create table public.standard_foods (
+  id              uuid    primary key default gen_random_uuid(),
+  name            text    not null check (length(btrim(name)) > 0),
+  kcal_per_100    numeric not null check (kcal_per_100 >= 0),
+  protein_per_100 numeric not null check (protein_per_100 >= 0),
+  carbs_per_100   numeric not null check (carbs_per_100 >= 0),
+  fat_per_100     numeric not null check (fat_per_100 >= 0),
+  category        text,
+  created_at      timestamptz not null default now()
+);
+
+create index standard_foods_name_trgm_idx
+  on public.standard_foods using gin (name gin_trgm_ops);
+
+alter table public.standard_foods enable row level security;
+
+-- Apenas leitura para autenticados; sem insert/update/delete
+create policy "standard_foods_select" on public.standard_foods
+  for select to authenticated using (true);

@@ -73,8 +73,13 @@ body { font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; color
 .chip { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); font-size: 12.5px; color: var(--text); cursor: pointer; white-space: nowrap; }
 .chip:hover { border-color: var(--calories); }
 .suggest { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.4); max-height: 220px; overflow-y: auto; }
-.suggest-item { padding: 8px 10px; font-size: 13.5px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+.suggest-item { padding: 8px 10px; font-size: 13.5px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
 .suggest-item:hover { background: var(--surface); }
+.qa-suggestion-header { display: flex; justify-content: space-between; align-items: center; }
+.qa-suggestion-macros { font-size: 0.75rem; color: var(--textMuted); }
+.qa-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 999px; font-weight: 600; }
+.qa-badge--user { background: var(--calories); color: #17140A; }
+.qa-badge--standard { background: var(--surface); color: var(--textMuted); }
 .cal-cell { min-height: 55px; border-radius: 6px; border: 1px solid var(--borderSoft); cursor: default; position: relative; background: none; padding: 0; font-family: inherit; }
 .cal-cell.has-data { cursor: pointer; }
 .cal-cell.has-data:hover { border-color: var(--calories); }

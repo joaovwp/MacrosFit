@@ -99,7 +99,8 @@ export function mapUserFoodFromDB(food) {
     kcal: food.kcal_per_100,
     protein: food.protein_per_100,
     carbs: food.carbs_per_100,
-    fat: food.fat_per_100
+    fat: food.fat_per_100,
+    source: 'user'
   };
 }
 
@@ -110,11 +111,24 @@ export function mapUserFoodToDB(food) {
   const result = {
     id: food.id,
     name: food.name,
-    kcal_per_100: food.kcal_per_100,
-    protein_per_100: food.protein_per_100,
-    carbs_per_100: food.carbs_per_100,
-    fat_per_100: food.fat_per_100
+    kcal_per_100: food.kcal,
+    protein_per_100: food.protein,
+    carbs_per_100: food.carbs,
+    fat_per_100: food.fat
   };
 
   return result;
+}
+
+// Mapear standard_food do Supabase (snake_case) para app (camelCase)
+export function mapStandardFoodFromDB(row) {
+  return {
+    id:      row.id,
+    name:    row.name,
+    kcal:    row.kcal_per_100,
+    protein: row.protein_per_100,
+    carbs:   row.carbs_per_100,
+    fat:     row.fat_per_100,
+    source:  'standard'
+  };
 }

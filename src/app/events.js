@@ -11,6 +11,8 @@ import { ensureBiometricsForm } from '../components/settings/biometricsForm.js';
 import { render } from './render.js';
 import * as authApi from '../api/auth.js';
 import * as profileApi from '../api/profile.js';
+import { searchStandardFoods } from '../api/standard_foods.js';
+import { mapStandardFoodFromDB } from '../utils/mapper.js';
 import { MACRO_DISTRIBUTIONS, CALORIE_GOALS } from '../core/constants.js';
 import { handleError } from '../core/errorHandler.js';
 import { getState, showNotification, clearNotification } from '../state/appState.js';
@@ -24,6 +26,10 @@ function updateInputValue(field, value) {
 
 export function setupEventHandlers(root) {
   // Estado encapsulado, acessível via getState()
+
+  // Debounce timers
+  let libSearchTimeout = null;
+  let qaSearchTimeout = null;
 
   root.addEventListener("click", (ev) => {
     const el = ev.target.closest("[data-action]");
@@ -43,6 +49,20 @@ export function setupEventHandlers(root) {
         if (state2.tab === "perfil") { state2.biometricsForm = null; state2.biometricsSaved = false; }
         if (state2.tab === "historico") { state2.selectedKey = null; }
         if (state2.tab === "config") { state2.importExport.showImport = false; }
+        if (state2.tab === "alimentos") {
+          state2.lib.standardFoods = [];
+          (async () => {
+            try {
+              const standardFoods = await searchStandardFoods('');
+              state2.lib.standardFoods = standardFoods.map(mapStandardFoodFromDB);
+              render(state2);
+            } catch (e) {
+              console.error('Error loading standard foods:', e);
+              state2.lib.standardFoods = [];
+              render(state2);
+            }
+          })();
+        }
         state2.sidebarOpen = false;
         render(state2);
         break;
@@ -52,13 +72,22 @@ export function setupEventHandlers(root) {
         break;
       }
       case "qa-pick-suggestion": {
-        const food = getState().library[el.dataset.id];
-        if (food) { 
-          getState().qa.name = food.name; 
-          getState().qa.grams = "100"; // Set default grams to 100
-          getState().qa.manualOpen = false; 
-          getState().qa.showSuggest = false; 
-          render(getState()); 
+        const id = el.dataset.id;
+        const source = el.dataset.source;
+
+        let food;
+        if (source === 'user') {
+          food = getState().library[id];
+        } else if (source === 'standard') {
+          food = getState().qa.standardSuggestions?.find(f => f.id === id);
+        }
+
+        if (food) {
+          getState().qa.name = food.name;
+          getState().qa.grams = "100";
+          getState().qa.manualOpen = false;
+          getState().qa.showSuggest = false;
+          render(getState());
         }
         break;
       }
@@ -636,11 +665,50 @@ export function setupEventHandlers(root) {
       case "qa-name-input":
         getState().qa.name = el.value;
         getState().qa.showSuggest = !!el.value.trim();
-        // Só renderiza se houver sugestões para mostrar
-        if (getState().qa.showSuggest) {
-          render(getState());
-        }
+
+        clearTimeout(qaSearchTimeout);
+        qaSearchTimeout = setTimeout(async () => {
+          if (el.value.trim().length >= 2) {
+            try {
+              const standardFoods = await searchStandardFoods(el.value);
+              getState().qa.standardSuggestions = standardFoods.map(mapStandardFoodFromDB);
+              render(getState());
+            } catch (e) {
+              console.error('Error searching standard foods:', e);
+            }
+          } else {
+            getState().qa.standardSuggestions = [];
+            if (getState().qa.showSuggest) {
+              render(getState());
+            }
+          }
+        }, 200);
+
         break;
+    }
+  });
+
+  root.addEventListener("blur", (ev) => {
+    const el = ev.target.closest("[data-action]");
+    if (!el) return;
+    const action = el.dataset.action;
+    switch (action) {
+      case "qa-name-input":
+        setTimeout(() => {
+          if (!ev.relatedTarget || !ev.relatedTarget.closest('.suggest')) {
+            getState().qa.showSuggest = false;
+            render(getState());
+          }
+        }, 200);
+        break;
+    }
+  }, true);
+
+  root.addEventListener("input", (ev) => {
+    const el = ev.target.closest("[data-action]");
+    if (!el) return;
+    const action = el.dataset.action;
+    switch (action) {
       case "qa-grams-input":
         getState().qa.grams = el.value;
         // Atualizar apenas os macros calculados sem recriar o DOM
@@ -682,7 +750,23 @@ export function setupEventHandlers(root) {
         break;
       case "lib-search-input":
         getState().lib.query = el.value;
-        render(getState());
+
+        clearTimeout(libSearchTimeout);
+        libSearchTimeout = setTimeout(async () => {
+          if (el.value.trim().length >= 2) {
+            try {
+              const standardFoods = await searchStandardFoods(el.value);
+              getState().lib.standardFoods = standardFoods.map(mapStandardFoodFromDB);
+              render(getState());
+            } catch (e) {
+              console.error('Error searching standard foods:', e);
+            }
+          } else {
+            getState().lib.standardFoods = [];
+            render(getState());
+          }
+        }, 200);
+
         break;
       case "lib-form-input":
         getState().lib.form[el.dataset.field] = el.value;

@@ -7,6 +7,7 @@ import * as authApi from '../api/auth.js';
 import { mapUserFoodToDB, mapUserFoodFromDB } from '../utils/mapper.js';
 import { handleError } from '../core/errorHandler.js';
 import { showNotification } from './appState.js';
+import { logAction } from '../api/audit.js';
 
 const DEFAULT_PROFILE = {
   goals: null,
@@ -457,6 +458,8 @@ export async function deleteFood(state, id) {
 }
 
 export async function resetAll(state) {
+  await logAction('data_reset');
+
   await persist('profile', DEFAULT_PROFILE);
   await persist('library', {});
   await persist('diary', {});
@@ -477,7 +480,8 @@ export async function resetAll(state) {
     newFoodMode: false,
     newFoodForm: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },
     currentMealItems: [],
-    conversionWarning: null
+    conversionWarning: null,
+    standardSuggestions: []
   };
 }
 

@@ -90,7 +90,13 @@ export function quickAddFormHTML(state) {
         <div style="position:relative;flex:2">
           <input id="qa-name" class="input" placeholder="Nome do alimento" value="${esc(state.qa.name)}" data-action="qa-name-input" autocomplete="off"/>
           ${suggestions.length ? `<div class="suggest">
-            ${suggestions.map((f) => `<div class="suggest-item" data-action="qa-pick-suggestion" data-id="${f.id}"><span>${esc(f.name)}</span><span class="mono" style="color:var(--textMuted)">${Math.round(f.kcal)} kcal/100g</span></div>`).join("")}
+            ${suggestions.map((f) => `<div class="suggest-item" data-action="qa-pick-suggestion" data-id="${f.id}" data-source="${f.source || 'user'}">
+              <div class="qa-suggestion-header">
+                <span>${esc(f.name)}</span>
+                <span class="qa-badge qa-badge--${f.source === 'standard' ? 'standard' : 'user'}">${f.source === 'standard' ? 'TACO' : 'Meu'}</span>
+              </div>
+              <span class="qa-suggestion-macros">${Math.round(f.kcal)} kcal (100g) · P ${round(f.protein)}g · C ${round(f.carbs)}g · G ${round(f.fat)}g</span>
+            </div>`).join("")}
           </div>` : ""}
         </div>
         <input id="qa-grams" class="input" placeholder="g" type="number" inputmode="decimal" style="flex:1" value="${esc(state.qa.grams)}" data-action="qa-grams-input"/>

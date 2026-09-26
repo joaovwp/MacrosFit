@@ -4,14 +4,29 @@ import { MEAL_TYPES } from '../core/constants.js';
 export function qaBasis(state) {
   const n = normalize(state.qa.name);
   if (!n) return null;
+  
   const exact = Object.values(state.library).find((f) => normalize(f.name) === n);
-  return exact ? { kcal: exact.kcal, protein: exact.protein, carbs: exact.carbs, fat: exact.fat } : null;
+  if (exact) return { kcal: exact.kcal, protein: exact.protein, carbs: exact.carbs, fat: exact.fat };
+  
+  const standardExact = (state.qa.standardSuggestions || []).find((f) => normalize(f.name) === n);
+  if (standardExact) return { kcal: standardExact.kcal, protein: standardExact.protein, carbs: standardExact.carbs, fat: standardExact.fat };
+  
+  return null;
 }
 
 export function qaSuggestions(state) {
   const n = normalize(state.qa.name);
   if (!n) return [];
-  return Object.values(state.library).filter((f) => normalize(f.name).includes(n)).slice(0, 6);
+
+  const userFoods = Object.values(state.library).filter((f) => normalize(f.name).includes(n));
+
+  const standardFoods = (state.qa.standardSuggestions || []).filter((f) =>
+    normalize(f.name).includes(n) && !userFoods.some(uf => normalize(uf.name) === normalize(f.name))
+  );
+
+  const results = [...userFoods, ...standardFoods].slice(0, 10);
+
+  return results;
 }
 
 export function qaComputed(state) {

@@ -36,4 +36,5 @@ yarn-error.log*
 .cache/
 
 # Local-only files
-*.sql
+scripts/taco-import.sql
+scripts/taco-data.json

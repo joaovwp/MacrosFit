@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../supabase/client.js';
+import { logAction } from './audit.js';
 
 export async function signUp(email, password, displayName) {
   if (!isSupabaseConfigured) {
@@ -15,6 +16,8 @@ export async function signUp(email, password, displayName) {
   });
 
   if (error) throw error;
+
+  await logAction('signup');
 
   // Check if email confirmation is required
   if (!data.session && data.user) {
@@ -35,6 +38,8 @@ export async function signIn(email, password) {
   });
 
   if (error) throw error;
+
+  await logAction('login');
   return data;
 }
 
@@ -69,6 +74,8 @@ export async function updatePassword(newPassword) {
   });
 
   if (error) throw error;
+
+  await logAction('password_change');
 }
 
 export async function updateEmail(newEmail) {
@@ -81,6 +88,8 @@ export async function updateEmail(newEmail) {
   });
 
   if (error) throw error;
+
+  await logAction('email_change', { new_email: newEmail });
 }
 
 export async function getCurrentUser() {

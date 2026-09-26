@@ -18,7 +18,8 @@ export const initialState = {
     newFoodMode: false,
     newFoodForm: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },
     currentMealItems: [],
-    conversionWarning: null
+    conversionWarning: null,
+    standardSuggestions: []
   },
   entryEdit: { id: null, val: "" },
   trendMetric: "calories",
@@ -27,7 +28,8 @@ export const initialState = {
     adding: false,
     form: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },
     editingId: null,
-    conversionWarning: null
+    conversionWarning: null,
+    standardFoods: []
   },
   goalsForm: null,
   goalsSaved: false,

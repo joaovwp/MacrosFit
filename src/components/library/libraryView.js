@@ -4,15 +4,16 @@ import { esc, normalize, round } from '../../core/utils.js';
 export function libraryViewHTML(state) {
   const q = normalize(state.lib.query);
   const libraryList = Object.values(state.library).filter((f) => (!q || normalize(f.name).includes(q))).sort((a, b) => a.name.localeCompare(b.name));
+  const standardList = (state.lib.standardFoods || []).filter((f) => (!q || normalize(f.name).includes(q))).sort((a, b) => a.name.localeCompare(b.name));
 
   return `<div style="display:flex;flex-direction:column;gap:16px">
     <div class="card" style="padding:16px">
       <div style="font-weight:700;font-size:15px;margin-bottom:4px">Biblioteca de alimentos</div>
-      <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:12px">Seus alimentos base (valores por 100g).</div>
+      <div style="font-size:12.5px;color:var(--textMuted);margin-bottom:12px">Seus alimentos base e alimentos padrão TACO (valores por 100g).</div>
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <div style="position:relative;flex:1">
           <span style="position:absolute;left:10px;top:10px">${icon("search", 14, "var(--textFaint)")}</span>
-          <input class="input" style="padding-left:30px" placeholder="Buscar alimento" value="${esc(state.lib.query)}" data-action="lib-search-input"/>
+          <input id="lib-search-input" class="input" style="padding-left:30px" placeholder="Buscar alimento" value="${esc(state.lib.query)}" data-action="lib-search-input"/>
         </div>
         <button class="btn btn-primary" data-action="lib-toggle-add">${icon("plus", 15)} Novo</button>
       </div>
@@ -52,8 +53,10 @@ export function libraryViewHTML(state) {
           <button class="btn" data-action="lib-cancel-add">Cancelar</button>
         </div>
       </div>` : ""}
-      ${libraryList.length === 0 ? `<div class="card" style="padding:20px;text-align:center;color:var(--textFaint);font-size:13.5px">Nenhum alimento na biblioteca. Adicione alimentos que você usa frequentemente.</div>`
-        : `<div class="card" style="padding:4px">
+
+      ${libraryList.length > 0 ? `<div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--textMuted);margin-bottom:8px">Meus alimentos</div>
+        <div class="card" style="padding:4px">
           ${libraryList.map((f) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--borderSoft)">
             <div style="flex:1">
               <div style="font-size:13.5px;font-weight:600">${esc(f.name)}</div>
@@ -62,7 +65,25 @@ export function libraryViewHTML(state) {
             <button class="btn btn-icon" data-action="lib-edit" data-id="${f.id}">${icon("pencil", 13)}</button>
             <button class="btn btn-icon btn-danger" data-action="lib-delete" data-id="${f.id}">${icon("trash", 13)}</button>
           </div>`).join("")}
-        </div>`}
+        </div>
+      </div>` : ""}
+
+      ${standardList.length > 0 ? `<div>
+        <div style="font-size:12px;font-weight:600;color:var(--textMuted);margin-bottom:8px">Alimentos padrão (TACO)</div>
+        <div class="card" style="padding:4px">
+          ${standardList.map((f) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--borderSoft)">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:13.5px;font-weight:600">${esc(f.name)}</span>
+                <span class="qa-badge qa-badge--standard">TACO</span>
+              </div>
+              <div class="mono" style="font-size:11px;color:var(--textMuted);margin-top:2px">${Math.round(f.kcal)} kcal · P${round(f.protein)}g C${round(f.carbs)}g G${round(f.fat)}g /100g</div>
+            </div>
+          </div>`).join("")}
+        </div>
+      </div>` : ""}
+
+      ${libraryList.length === 0 && standardList.length === 0 ? `<div class="card" style="padding:20px;text-align:center;color:var(--textFaint);font-size:13.5px">Nenhum alimento encontrado. Busque por nome ou adicione novos alimentos.</div>` : ""}
     </div>
   </div>`;
 }
