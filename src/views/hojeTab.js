@@ -17,7 +17,7 @@ export function hojeTabHTML(state) {
   }
   const today = state.diary[dateKey(new Date())] || emptyDay();
   const totals = dayTotals(today);
-  
+
   return `<div style="display:flex;flex-direction:column;gap:16px">
     <div class="card" style="padding:18px">
       <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">

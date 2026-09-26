@@ -4,14 +4,14 @@ import { MEAL_TYPES } from '../core/constants.js';
 export function qaBasis(state) {
   const n = normalize(state.qa.name);
   if (!n) return null;
-  const exact = Object.values(state.library).find((f) => normalize(f.name) === n && (f.is_active !== false));
+  const exact = Object.values(state.library).find((f) => normalize(f.name) === n);
   return exact ? { kcal: exact.kcal, protein: exact.protein, carbs: exact.carbs, fat: exact.fat } : null;
 }
 
 export function qaSuggestions(state) {
   const n = normalize(state.qa.name);
   if (!n) return [];
-  return Object.values(state.library).filter((f) => normalize(f.name).includes(n) && (f.is_active !== false)).slice(0, 6);
+  return Object.values(state.library).filter((f) => normalize(f.name).includes(n)).slice(0, 6);
 }
 
 export function qaComputed(state) {
@@ -24,13 +24,21 @@ export function qaComputed(state) {
 export function recentFoods(state) {
   const all = [];
   Object.values(state.diary).forEach((day) => day.entries.forEach((e) => all.push(e)));
-  all.sort((a, b) => b.time - a.time);
+  // Ordenar por criação mais recente (assumindo que entries são ordenadas por created_at ou id)
+  // Como não temos mais 'time', usamos ordem reversa
+  all.reverse();
   const seen = new Set(); const out = [];
   for (const e of all) {
     const n = normalize(e.name);
     if (seen.has(n)) continue;
     seen.add(n);
-    out.push({ name: e.name, grams: e.grams, per100: e.per100 });
+    // Se não tiver per100, não pode ser reutilizado
+    if (e.food_id && state.library[e.food_id]) {
+      const food = state.library[e.food_id];
+      out.push({ name: e.name, grams: e.grams, per100: { kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat } });
+    } else if (e.per100) {
+      out.push({ name: e.name, grams: e.grams, per100: e.per100 });
+    }
     if (out.length >= 8) break;
   }
   return out;
@@ -45,25 +53,24 @@ export function groupEntriesByMeal(day) {
   return grouped;
 }
 
-export function groupEntriesByMealInstance(day) {
+// Agrupar entries por meal_id (agrupamento por refeição real do novo schema)
+export function groupEntriesByMealId(day) {
   const entries = day.entries || [];
   const grouped = {};
-  
+
   entries.forEach(e => {
-    const key = e.mealType || 'outro';
-    const instanceId = e.importInstanceId || e.time;
-    const instanceKey = `${key}-${instanceId}`;
-    
-    if (!grouped[instanceKey]) {
-      grouped[instanceKey] = {
-        mealType: key,
-        instanceId: instanceId,
-        entries: [],
-        time: e.time
+    const mealId = e.meal_id;
+    const mealType = e.mealType || 'outro';
+
+    if (!grouped[mealId]) {
+      grouped[mealId] = {
+        meal_id: mealId,
+        mealType: mealType,
+        entries: []
       };
     }
-    grouped[instanceKey].entries.push(e);
+    grouped[mealId].entries.push(e);
   });
-  
-  return Object.values(grouped).sort((a, b) => a.time - b.time);
+
+  return Object.values(grouped);
 }

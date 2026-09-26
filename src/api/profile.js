@@ -82,10 +82,10 @@ export async function updateGoals(goals) {
   const { data, error } = await supabase
     .from('profiles')
     .update({
-      calories: goals.calories,
-      protein: goals.protein,
-      carbs: goals.carbs,
-      fat: goals.fat
+      calorie_goal: goals.calories,
+      protein_goal_g: goals.protein,
+      carbs_goal_g: goals.carbs,
+      fat_goal_g: goals.fat
     })
     .eq('id', user.id)
     .select()
@@ -106,36 +106,11 @@ export async function updateBiometrics(biometrics) {
   const { data, error } = await supabase
     .from('profiles')
     .update({
-      weight: biometrics.weight,
-      height: biometrics.height,
+      weight_kg: biometrics.weight,
+      height_cm: biometrics.height,
       birth_date: biometrics.birth_date,
       gender: biometrics.gender,
       activity_level: biometrics.activity_level
-    })
-    .eq('id', user.id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-export async function updateSettings(settings) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured');
-  }
-
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({
-      track_weight: settings.track_weight,
-      track_water: settings.track_water,
-      track_workout: settings.track_workout,
-      theme: settings.theme,
-      language: settings.language
     })
     .eq('id', user.id)
     .select()

@@ -13,19 +13,21 @@ export const initialState = {
     targetDate: null,
     manualOpen: false,
     manual: { kcal: "", protein: "", carbs: "", fat: "" },
-    saveToLib: true,
     showSuggest: false,
-    msg: ""
+    msg: "",
+    newFoodMode: false,
+    newFoodForm: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },
+    currentMealItems: [],
+    conversionWarning: null
   },
   entryEdit: { id: null, val: "" },
   trendMetric: "calories",
   lib: {
     query: "",
     adding: false,
-    form: { name: "", kcal: "", protein: "", carbs: "", fat: "" },
+    form: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },
     editingId: null,
-    editingHistory: null,
-    recalcHistory: false
+    conversionWarning: null
   },
   goalsForm: null,
   goalsSaved: false,
@@ -38,7 +40,6 @@ export const initialState = {
     importData: "",
     mealImportData: ""
   },
-  appSettings: { theme: "dark", language: "pt-BR" },
   biometricsForm: null,
   biometricsSaved: false,
   expandedMeals: {},

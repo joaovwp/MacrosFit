@@ -1,7 +1,6 @@
 import { calendarMonthHTML } from '../components/history/calendar.js';
 import { trendChartHTML } from '../components/history/trendChart.js';
 import { macroDistributionHTML } from '../components/history/macroDistribution.js';
-import { weightTrendHTML } from '../components/history/weightTrend.js';
 import { insightsGridHTML } from '../components/history/insights.js';
 import { dayDetailHTML } from '../components/history/dayDetail.js';
 
@@ -14,7 +13,6 @@ export function historicoTabHTML(state) {
     ${dayDetailHTML(state)}
     ${trendChartHTML(state)}
     ${macroDistributionHTML(state)}
-    ${weightTrendHTML(state)}
     ${insightsGridHTML(state)}
   </div>`;
 }

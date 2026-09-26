@@ -1,27 +1,26 @@
 import { supabase, isSupabaseConfigured } from '../supabase/client.js';
 
-export async function getFoods() {
+export async function getUserFoods() {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase not configured');
   }
 
   const { data, error } = await supabase
-    .from('foods')
+    .from('user_foods')
     .select('*')
-    .eq('is_active', true)
     .order('name');
 
   if (error) throw error;
   return data;
 }
 
-export async function getFood(id) {
+export async function getUserFood(id) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase not configured');
   }
 
   const { data, error } = await supabase
-    .from('foods')
+    .from('user_foods')
     .select('*')
     .eq('id', id)
     .single();
@@ -30,25 +29,20 @@ export async function getFood(id) {
   return data;
 }
 
-export async function upsertFood(food) {
+export async function createUserFood(food) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase not configured');
   }
 
   const { data, error } = await supabase
-    .from('foods')
-    .upsert({
-      id: food.id,
-      user_id: food.user_id,
+    .from('user_foods')
+    .insert({
       name: food.name,
+      user_id: food.user_id,
       kcal_per_100: food.kcal_per_100,
       protein_per_100: food.protein_per_100,
       carbs_per_100: food.carbs_per_100,
-      fat_per_100: food.fat_per_100,
-      is_favorite: food.is_favorite || false,
-      category: food.category,
-      is_active: food.is_active !== false,
-      updated_at: new Date().toISOString()
+      fat_per_100: food.fat_per_100
     })
     .select()
     .single();
@@ -57,14 +51,14 @@ export async function upsertFood(food) {
   return data;
 }
 
-export async function softDeleteFood(id) {
+export async function updateUserFood(id, updates) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase not configured');
   }
 
   const { data, error } = await supabase
-    .from('foods')
-    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .from('user_foods')
+    .update(updates)
     .eq('id', id)
     .select()
     .single();
@@ -73,13 +67,13 @@ export async function softDeleteFood(id) {
   return data;
 }
 
-export async function deleteFood(id) {
+export async function deleteUserFood(id) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase not configured');
   }
 
   const { error } = await supabase
-    .from('foods')
+    .from('user_foods')
     .delete()
     .eq('id', id);
 

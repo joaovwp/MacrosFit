@@ -1,0 +1,198 @@
+-- =====================================================================
+-- MacrosFit: schema simples (4 tabelas)
+-- profiles, user_foods, meals, meal_items
+-- Rodar inteiro no SQL Editor do Supabase.
+-- =====================================================================
+
+
+-- =====================================================================
+-- 0. LIMPEZA (apaga o schema antigo, só use com o banco vazio)
+-- =====================================================================
+drop table if exists
+  public.meal_items,
+  public.meal_template_items,
+  public.meal_entries,
+  public.meal_templates,
+  public.meals,
+  public.daily_logs,
+  public.user_foods,
+  public.foods,
+  public.client_events,
+  public.audit_log,
+  public.profiles
+cascade;
+
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
+drop function if exists public.create_meal(date, text, jsonb, text, timestamptz, text);
+drop function if exists public.set_updated_at();
+
+
+-- =====================================================================
+-- 1. PROFILES: usuário, biometria, objetivo e metas
+-- activity_level: 1 sedentário, 2 leve, 3 moderado, 4 ativo, 5 muito ativo
+-- (o multiplicador de cada nível fica no JS)
+-- =====================================================================
+create table public.profiles (
+  id              uuid primary key references auth.users (id) on delete cascade,
+  display_name    text not null,
+  birth_date      date,
+  gender          text check (gender in ('male', 'female')),
+  height_cm       numeric check (height_cm > 0),
+  weight_kg       numeric check (weight_kg > 0),
+  activity_level  smallint check (activity_level between 1 and 5),
+  goal            text not null default 'maintain' check (goal in ('lose', 'maintain', 'gain')),
+  calorie_goal    numeric check (calorie_goal >= 0),
+  protein_goal_g  numeric check (protein_goal_g >= 0),
+  carbs_goal_g    numeric check (carbs_goal_g >= 0),
+  fat_goal_g      numeric check (fat_goal_g >= 0),
+  deactivated_at  timestamptz,
+  created_at      timestamptz not null default now()
+);
+
+
+-- =====================================================================
+-- 2. USER_FOODS: alimentos criados pelo usuário (valores por 100 g)
+-- No futuro o banco de alimentos padrão fica em outra tabela.
+-- =====================================================================
+create table public.user_foods (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  name            text not null check (length(btrim(name)) > 0),
+  kcal_per_100    numeric not null check (kcal_per_100 >= 0),
+  protein_per_100 numeric not null check (protein_per_100 >= 0),
+  carbs_per_100   numeric not null check (carbs_per_100 >= 0),
+  fat_per_100     numeric not null check (fat_per_100 >= 0),
+  created_at      timestamptz not null default now()
+);
+
+-- impede dois alimentos com o mesmo nome para o mesmo usuário
+create unique index user_foods_user_name_unique
+  on public.user_foods (user_id, lower(btrim(name)));
+
+
+-- =====================================================================
+-- 3. MEALS: a refeição inteira
+-- meal_type guarda a chave (cafe, almoco, lanche, jantar, ceia, outro).
+-- O texto exibido ("Café da manhã" etc.) vem de um dicionário no JS.
+-- =====================================================================
+create table public.meals (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  date        date not null,
+  meal_type   text not null check (meal_type in ('cafe', 'almoco', 'lanche', 'jantar', 'ceia', 'outro')),
+  created_at  timestamptz not null default now()
+);
+
+create index meals_user_date_idx on public.meals (user_id, date);
+
+
+-- =====================================================================
+-- 4. MEAL_ITEMS: o que o usuário comeu em cada refeição
+-- Guarda os valores finais da porção (kcal, proteína, carbo e gordura
+-- já multiplicados pela quantidade). O JS calcula na hora de salvar,
+-- usando os valores por 100 g do alimento. Depois disso o item não
+-- depende mais da tabela de alimentos.
+-- =====================================================================
+create table public.meal_items (
+  id          uuid primary key default gen_random_uuid(),
+  meal_id     uuid not null references public.meals (id) on delete cascade,
+  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  food_id     uuid references public.user_foods (id) on delete set null,
+  name        text not null check (length(btrim(name)) > 0),
+  grams       numeric not null check (grams > 0),
+  kcal        numeric not null check (kcal >= 0),
+  protein     numeric not null check (protein >= 0),
+  carbs       numeric not null check (carbs >= 0),
+  fat         numeric not null check (fat >= 0),
+  created_at  timestamptz not null default now()
+);
+
+create index meal_items_meal_idx on public.meal_items (meal_id);
+
+
+-- =====================================================================
+-- 5. PROFILE AUTOMÁTICO NO CADASTRO
+-- No signUp, envie o nome em options.data.display_name.
+-- O app só faz update no profile, nunca insert.
+-- =====================================================================
+create function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (id, display_name)
+  values (
+    new.id,
+    coalesce(
+      nullif(btrim(new.raw_user_meta_data ->> 'display_name'), ''),
+      nullif(split_part(new.email, '@', 1), ''),
+      'Usuário'
+    )
+  );
+  return new;
+end;
+$$;
+
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- cria o profile de contas que já existem (o trigger só vale para novas)
+insert into public.profiles (id, display_name)
+select
+  id,
+  coalesce(
+    nullif(btrim(raw_user_meta_data ->> 'display_name'), ''),
+    nullif(split_part(email, '@', 1), ''),
+    'Usuário'
+  )
+from auth.users
+on conflict (id) do nothing;
+
+
+-- =====================================================================
+-- 6. RLS: cada usuário só enxerga e altera os próprios dados
+-- =====================================================================
+alter table public.profiles   enable row level security;
+alter table public.user_foods enable row level security;
+alter table public.meals      enable row level security;
+alter table public.meal_items enable row level security;
+
+create policy "profiles_select_own" on public.profiles
+  for select to authenticated
+  using (id = (select auth.uid()));
+
+create policy "profiles_update_own" on public.profiles
+  for update to authenticated
+  using (id = (select auth.uid()))
+  with check (id = (select auth.uid()));
+
+create policy "user_foods_own" on public.user_foods
+  for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+create policy "meals_own" on public.meals
+  for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+create policy "meal_items_own" on public.meal_items
+  for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+
+-- =====================================================================
+-- 7. GRANTS (necessários porque "expose new tables" está desligado)
+-- =====================================================================
+grant usage on schema public to authenticated;
+grant select, update on public.profiles to authenticated;
+grant select, insert, update, delete on public.user_foods to authenticated;
+grant select, insert, update, delete on public.meals to authenticated;
+grant select, insert, update, delete on public.meal_items to authenticated;

@@ -1,6 +1,16 @@
 import { ACTIVITY_LEVELS } from './constants.js';
 
-export const uid = () => crypto.randomUUID();
+export const uid = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback para ambientes onde crypto.randomUUID não está disponível
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 export const normalize = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
@@ -38,13 +48,10 @@ export function addDays(d, n) {
   return r; 
 }
 
-export function emptyDay() { 
-  return { 
-    entries: [], 
-    weight: null, 
-    water: 0, 
-    workout: { done: false, note: "" } 
-  }; 
+export function emptyDay() {
+  return {
+    entries: []
+  };
 }
 
 export function dayTotals(day) {

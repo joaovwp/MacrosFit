@@ -1,10 +1,10 @@
 import { TABS } from '../core/constants.js';
 import { hojeTabHTML } from '../views/hojeTab.js';
 import { historicoTabHTML } from '../views/historicoTab.js';
-import { alimentosTabHTML } from '../views/alimentosTab.js';
+import { libraryViewHTML } from '../components/library/libraryView.js';
 import { metasTabHTML } from '../views/metasTab.js';
-import { perfilTabHTML } from '../views/perfilTab.js';
-import { configTabHTML } from '../views/configTab.js';
+import { profileViewHTML } from '../components/profile/profileView.js';
+import { configViewHTML } from '../components/config/configView.js';
 import { authViewHTML } from '../components/auth/authView.js';
 import { icon } from '../core/icons.js';
 
@@ -57,10 +57,10 @@ export function appHTML(state) {
         
         ${state.tab === "hoje" ? hojeTabHTML(state) : ""}
         ${state.tab === "historico" ? historicoTabHTML(state) : ""}
-        ${state.tab === "alimentos" ? alimentosTabHTML(state) : ""}
+        ${state.tab === "alimentos" ? libraryViewHTML(state) : ""}
         ${state.tab === "metas" ? metasTabHTML(state) : ""}
-        ${state.tab === "perfil" ? perfilTabHTML(state) : ""}
-        ${state.tab === "config" ? configTabHTML(state) : ""}
+        ${state.tab === "perfil" ? profileViewHTML(state) : ""}
+        ${state.tab === "config" ? configViewHTML(state) : ""}
       </main>
     </div>
   `;

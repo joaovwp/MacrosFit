@@ -1,11 +1,10 @@
 import { isSupabaseConfigured } from '../supabase/client.js';
 import * as authApi from '../api/auth.js';
-import * as foodsApi from '../api/foods.js';
+import * as userFoodsApi from '../api/user_foods.js';
 import * as mealsApi from '../api/meals.js';
-import * as dailyLogsApi from '../api/daily_logs.js';
 import * as profileApi from '../api/profile.js';
-import { uid, dateKey, emptyDay } from '../core/utils.js';
-import { mapProfileFromDB, mapProfileToDB, mapFoodFromDB, mapFoodToDB } from '../utils/mapper.js';
+import { dateKey, emptyDay } from '../core/utils.js';
+import { mapProfileFromDB, mapProfileToDB, mapUserFoodFromDB, mapUserFoodToDB } from '../utils/mapper.js';
 
 // UI preferences localStorage (with user id prefix)
 const UI_PREFIX = 'ft-ui-';
@@ -85,10 +84,10 @@ export async function loadFoods() {
     return {};
   }
 
-  const foods = await foodsApi.getFoods();
+  const foods = await userFoodsApi.getUserFoods();
   const foodsMap = {};
   foods.forEach(food => {
-    const mapped = mapFoodFromDB(food);
+    const mapped = mapUserFoodFromDB(food);
     if (mapped) {
       foodsMap[mapped.id] = mapped;
     }
@@ -111,8 +110,8 @@ export async function saveFoods(foods) {
   if (!user) throw new Error('Not authenticated');
 
   for (const food of Object.values(foods)) {
-    const dbFood = mapFoodToDB(food);
-    await foodsApi.upsertFood({
+    const dbFood = mapUserFoodToDB(food);
+    await userFoodsApi.createUserFood({
       ...dbFood,
       user_id: user.id
     });
@@ -132,61 +131,30 @@ export async function loadDiary() {
   const user = await authApi.getCurrentUser();
   if (!user) return {};
 
-  // Load daily logs
-  const dailyLogs = await dailyLogsApi.getDailyLogs(
-    '1900-01-01',
-    dateKey(new Date())
-  );
-
-  const dailyLogsMap = {};
-  dailyLogs.forEach(log => {
-    dailyLogsMap[log.date] = {
-      weight: log.weight,
-      water: log.water,
-      workout: {
-        done: log.workout_done,
-        note: log.workout_note
-      }
-    };
-  });
-
-  // Load meals with entries
+  // Load meals with items
   const meals = await mealsApi.getMeals(dateKey(new Date()));
   const diary = {};
 
   meals.forEach(meal => {
-    const dateKey = meal.date;
-    if (!diary[dateKey]) {
-      diary[dateKey] = emptyDay();
+    const dateKeyStr = meal.date;
+    if (!diary[dateKeyStr]) {
+      diary[dateKeyStr] = emptyDay();
     }
 
-    if (dailyLogsMap[dateKey]) {
-      diary[dateKey] = {
-        ...diary[dateKey],
-        ...dailyLogsMap[dateKey]
-      };
-    }
-
-    if (meal.meal_entries) {
-      meal.meal_entries.forEach(entry => {
-        if (entry.deleted_at) return;
-
-        diary[dateKey].entries.push({
-          id: entry.id,
-          name: entry.name,
-          grams: entry.grams,
-          kcal: entry.kcal,
-          protein: entry.protein,
-          carbs: entry.carbs,
-          fat: entry.fat,
-          per100: {
-            kcal: entry.kcal_per_100,
-            protein: entry.protein_per_100,
-            carbs: entry.carbs_per_100,
-            fat: entry.fat_per_100
-          },
-          time: new Date(entry.time).getTime(),
-          mealType: meal.meal_type
+    if (meal.meal_items) {
+      meal.meal_items.forEach(item => {
+        diary[dateKeyStr].entries.push({
+          id: item.id,
+          name: item.name,
+          grams: item.grams,
+          kcal: item.kcal,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          per100: null, // Valores finais já calculados, não depende de per100
+          meal_id: meal.id,
+          mealType: meal.meal_type,
+          food_id: item.food_id
         });
       });
     }
@@ -209,37 +177,34 @@ export async function saveDiary(diary) {
   if (!user) throw new Error('Not authenticated');
 
   for (const [date, day] of Object.entries(diary)) {
-    // Save daily log
-    await dailyLogsApi.upsertDailyLog({
-      id: uid(),
-      user_id: user.id,
-      date: date,
-      weight: day.weight,
-      water: day.water || 0,
-      workout_done: day.workout?.done || false,
-      workout_note: day.workout?.note
+    // Group entries by mealType
+    const entriesByMealType = {};
+    day.entries.forEach(entry => {
+      const mealType = entry.mealType || 'outro';
+      if (!entriesByMealType[mealType]) {
+        entriesByMealType[mealType] = [];
+      }
+      entriesByMealType[mealType].push(entry);
     });
 
-    // Save meals and entries
-    for (const entry of day.entries) {
-      await mealsApi.createMealEntry({
-        id: entry.id,
-        meal_id: entry.meal_id || uid(),
-        user_id: user.id,
-        food_id: entry.food_id,
-        date: date,
-        name: entry.name,
-        grams: entry.grams,
-        kcal: entry.kcal,
-        protein: entry.protein,
-        carbs: entry.carbs,
-        fat: entry.fat,
-        kcal_per_100: entry.per100?.kcal,
-        protein_per_100: entry.per100?.protein,
-        carbs_per_100: entry.per100?.carbs,
-        fat_per_100: entry.per100?.fat,
-        time: new Date(entry.time).toISOString()
-      });
+    // For each meal type, get or create meal and add items
+    for (const [mealType, entries] of Object.entries(entriesByMealType)) {
+      const meal = await mealsApi.getOrCreateMeal(date, mealType);
+
+      for (const entry of entries) {
+        await mealsApi.createMealItem({
+          id: entry.id,
+          meal_id: meal.id,
+          user_id: user.id,
+          food_id: entry.food_id,
+          name: entry.name,
+          grams: entry.grams,
+          kcal: entry.kcal,
+          protein: entry.protein,
+          carbs: entry.carbs,
+          fat: entry.fat
+        });
+      }
     }
   }
 }
