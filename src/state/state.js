@@ -15,6 +15,7 @@ export const initialState = {
     manual: { kcal: "", protein: "", carbs: "", fat: "" },
     showSuggest: false,
     msg: "",
+    saving: false,
     newFoodMode: false,
     newFoodForm: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },
     currentMealItems: [],
@@ -26,13 +27,14 @@ export const initialState = {
   lib: {
     query: "",
     adding: false,
+    saving: false,
     form: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },
     editingId: null,
     conversionWarning: null,
     standardFoods: []
   },
   goalsForm: null,
-  goalsSaved: false,
+  goalsSaving: false,
   selectedCalorieGoal: null,
   selectedMacroDistribution: null,
   confirmDelete: false,
@@ -43,7 +45,7 @@ export const initialState = {
     mealImportData: ""
   },
   biometricsForm: null,
-  biometricsSaved: false,
+  biometricsSaving: false,
   expandedMeals: {},
   historyPeriod: 21,
   historyView: "overview",
@@ -58,8 +60,7 @@ export const initialState = {
   },
   profileTab: {
     editing: false,
-    saved: false,
-    passwordChanged: false,
+    saving: false,
     form: {
       displayName: '',
       email: '',

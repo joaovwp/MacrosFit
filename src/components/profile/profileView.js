@@ -41,8 +41,9 @@ export function profileViewHTML(state) {
             <input class="input" type="email" value="${esc(form.email || user.email || '')}" data-action="profile-email-input"/>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn btn-primary" data-action="profile-save">Salvar</button>
-            ${state.profileTab.saved ? `<span style="font-size:12.5px;color:var(--good)">salvo</span>` : ""}
+            <button class="btn btn-primary" data-action="profile-save" ${state.profileTab.saving ? 'disabled' : ''}>
+              ${state.profileTab.saving ? 'Salvando...' : 'Salvar'}
+            </button>
             <button class="btn" data-action="profile-cancel-edit">Cancelar</button>
           </div>
         </div>

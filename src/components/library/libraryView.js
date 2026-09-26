@@ -49,7 +49,9 @@ export function libraryViewHTML(state) {
           <input class="input" placeholder="gramas" type="number" value="${esc(state.lib.form.grams)}" data-action="lib-form-input" data-field="grams"/>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" data-action="lib-submit">${state.lib.editingId ? "Salvar alterações" : "Adicionar"}</button>
+          <button class="btn btn-primary" data-action="lib-submit" ${state.lib.saving ? 'disabled' : ''}>
+            ${state.lib.saving ? 'Salvando...' : (state.lib.editingId ? "Salvar alterações" : "Adicionar")}
+          </button>
           <button class="btn" data-action="lib-cancel-add">Cancelar</button>
         </div>
       </div>` : ""}

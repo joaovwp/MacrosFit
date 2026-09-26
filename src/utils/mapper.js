@@ -1,8 +1,22 @@
 // Mapper único para conversão entre camelCase e snake_case
+import { ACTIVITY_LEVELS } from '../core/constants.js';
 
 // camelCase -> snake_case
 export function toSnakeCase(str) {
   return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+// Converter ID textual de activity_level para numérico (1-5)
+export function activityLevelToNumber(activityLevelId) {
+  const level = ACTIVITY_LEVELS.find(l => l.id === activityLevelId);
+  return level ? ACTIVITY_LEVELS.indexOf(level) + 1 : null;
+}
+
+// Converter numérico de activity_level (1-5) para ID textual
+export function activityLevelFromNumber(activityLevelNumber) {
+  if (activityLevelNumber === null || activityLevelNumber === undefined) return null;
+  const index = activityLevelNumber - 1;
+  return ACTIVITY_LEVELS[index]?.id || null;
 }
 
 // snake_case -> camelCase
@@ -63,7 +77,7 @@ export function mapProfileFromDB(profile) {
       height: profile.height_cm,
       birthDate: profile.birth_date,
       gender: profile.gender,
-      activityLevel: profile.activity_level
+      activityLevel: activityLevelFromNumber(profile.activity_level)
     },
     deactivatedAt: profile.deactivated_at
   };
@@ -84,7 +98,9 @@ export function mapProfileToDB(profile) {
   if (profile.biometrics?.height !== undefined) result.height_cm = profile.biometrics.height;
   if (profile.biometrics?.birthDate !== undefined) result.birth_date = profile.biometrics.birthDate;
   if (profile.biometrics?.gender !== undefined) result.gender = profile.biometrics.gender;
-  if (profile.biometrics?.activityLevel !== undefined) result.activity_level = profile.biometrics.activityLevel;
+  if (profile.biometrics?.activityLevel !== undefined) {
+    result.activity_level = activityLevelToNumber(profile.biometrics.activityLevel);
+  }
 
   return result;
 }

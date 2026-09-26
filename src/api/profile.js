@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../supabase/client.js';
 import { getCurrentUser } from './auth.js';
-import { mapProfileFromDB } from '../utils/mapper.js';
+import { mapProfileFromDB, mapProfileToDB } from '../utils/mapper.js';
 
 export async function getProfile() {
   if (!isSupabaseConfigured) {
@@ -103,15 +103,11 @@ export async function updateBiometrics(biometrics) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not authenticated');
 
+  const dbUpdates = mapProfileToDB(biometrics);
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({
-      weight_kg: biometrics.weight,
-      height_cm: biometrics.height,
-      birth_date: biometrics.birth_date,
-      gender: biometrics.gender,
-      activity_level: biometrics.activity_level
-    })
+    .update(dbUpdates)
     .eq('id', user.id)
     .select()
     .single();

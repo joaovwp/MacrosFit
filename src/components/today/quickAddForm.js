@@ -122,7 +122,6 @@ export function quickAddFormHTML(state) {
       </div>` : `<div style="margin-bottom:10px"><a class="link" data-action="qa-open-manual">Não encontrou o alimento? Cadastrar novo</a></div>`) : ""}
       <div style="display:flex;align-items:center;gap:10px">
         <button class="btn btn-primary" data-action="qa-add-item" ${canAddItem ? "" : "disabled"}>${icon("plus", 15)} Adicionar</button>
-        ${state.qa.msg ? `<span style="font-size:12.5px;color:var(--good)">${esc(state.qa.msg)}</span>` : ""}
       </div>
     `}
 
@@ -151,7 +150,9 @@ export function quickAddFormHTML(state) {
           `).join("")}
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" data-action="qa-save-meal" ${canSaveMeal ? "" : "disabled"}>${icon("check", 14)} Registrar refeição</button>
+          <button class="btn btn-primary" data-action="qa-save-meal" ${canSaveMeal && !state.qa.saving ? "" : "disabled"}>
+            ${state.qa.saving ? 'Salvando...' : `${icon("check", 14)} Registrar refeição`}
+          </button>
           <button class="btn" data-action="qa-clear-meal">${icon("x", 14)} Limpar</button>
         </div>
       </div>

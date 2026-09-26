@@ -18,6 +18,38 @@ export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 export const round = (v) => Math.round(v * 10) / 10;
 
+// Sistema padrão de validação de formulários
+export const validateForm = (rules, data) => {
+  const errors = [];
+  
+  for (const [field, rule] of Object.entries(rules)) {
+    const value = data[field];
+    
+    if (rule.required && (!value || (typeof value === 'string' && value.trim() === ''))) {
+      errors.push(rule.message || `${field} é obrigatório`);
+      continue;
+    }
+    
+    if (rule.min !== undefined && parseFloat(value) < rule.min) {
+      errors.push(rule.message || `${field} deve ser maior que ${rule.min}`);
+    }
+    
+    if (rule.max !== undefined && parseFloat(value) > rule.max) {
+      errors.push(rule.message || `${field} deve ser menor que ${rule.max}`);
+    }
+    
+    if (rule.pattern && !rule.pattern.test(value)) {
+      errors.push(rule.message || `${field} tem formato inválido`);
+    }
+    
+    if (rule.custom && !rule.custom(value)) {
+      errors.push(rule.message || `${field} é inválido`);
+    }
+  }
+  
+  return errors;
+};
+
 export function esc(s) {
   // Função única de escape HTML - escapa & < > " '
   // Uso em atributos HTML também é seguro com essas entidades

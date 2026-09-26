@@ -5,7 +5,7 @@ import {
   exportMeal, importMeal, createUserFood, createUserFoodWithDetection, updateUserFood,
   addTemporaryMealItem, removeTemporaryMealItem, clearTemporaryMealItems, saveCompleteMeal
 } from '../state/mutations.js';
-import { uid, dateKey, emptyDay, normalize, calculateMacrosFromDistribution, calculateBMR, calculateTDEE, round, esc } from '../core/utils.js';
+import { uid, dateKey, emptyDay, normalize, calculateMacrosFromDistribution, calculateBMR, calculateTDEE, round, esc, validateForm } from '../core/utils.js';
 import { ensureGoalsForm } from '../components/settings/goalsForm.js';
 import { ensureBiometricsForm } from '../components/settings/biometricsForm.js';
 import { render } from './render.js';
@@ -45,8 +45,8 @@ export function setupEventHandlers(root) {
         const state2 = getState();
         state2.tab = el.dataset.tab;
         localStorage.setItem('ft-current-tab', state2.tab);
-        if (state2.tab === "metas") { state2.goalsForm = null; state2.goalsSaved = false; state2.confirmDelete = false; state2.selectedCalorieGoal = null; state2.selectedMacroDistribution = null; }
-        if (state2.tab === "perfil") { state2.biometricsForm = null; state2.biometricsSaved = false; }
+        if (state2.tab === "metas") { state2.goalsForm = null; state2.confirmDelete = false; state2.selectedCalorieGoal = null; state2.selectedMacroDistribution = null; }
+        if (state2.tab === "perfil") { state2.biometricsForm = null; }
         if (state2.tab === "historico") { state2.selectedKey = null; }
         if (state2.tab === "config") { state2.importExport.showImport = false; }
         if (state2.tab === "alimentos") {
@@ -224,15 +224,20 @@ export function setupEventHandlers(root) {
       case "qa-save-meal": {
         (async () => {
           try {
-            await saveCompleteMeal(getState(), getState().qa.targetDate || dateKey(new Date()), getState().qa.mealType);
-            getState().qa.msg = "Refeição registrada com sucesso!";
+            getState().qa.saving = true;
             render(getState());
-            setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 1800);
+
+            await saveCompleteMeal(getState(), getState().qa.targetDate || dateKey(new Date()), getState().qa.mealType);
+            getState().qa.saving = false;
+            showNotification("Refeição registrada com sucesso!", 'success');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 1800);
           } catch (e) {
             const error = handleError(e, 'qa-save-meal');
-            getState().qa.msg = error.message;
+            getState().qa.saving = false;
+            showNotification(error.message, 'error');
             render(getState());
-            setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 3000);
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           }
         })();
         break;
@@ -291,9 +296,29 @@ export function setupEventHandlers(root) {
         break;
       case "lib-submit": {
         const f = getState().lib.form;
-        if (!f.name.trim() || !f.kcal) break;
+
+        // Validação usando sistema padrão
+        const rules = {
+          name: { required: true, message: 'Nome do alimento é obrigatório' },
+          kcal: { required: true, min: 0, message: 'Calorias deve ser maior ou igual a 0' },
+          protein: { min: 0, message: 'Proteína deve ser maior ou igual a 0' },
+          carbs: { min: 0, message: 'Carboidratos deve ser maior ou igual a 0' },
+          fat: { min: 0, message: 'Gordura deve ser maior ou igual a 0' }
+        };
+
+        const errors = validateForm(rules, f);
+        if (errors.length > 0) {
+          showNotification(errors[0], 'error');
+          render(getState());
+          setTimeout(() => { clearNotification(); render(getState()); }, 3000);
+          break;
+        }
+
         (async () => {
           try {
+            getState().lib.saving = true;
+            render(getState());
+
             const foodData = {
               name: f.name.trim(),
               kcal: parseFloat(f.kcal) || 0,
@@ -310,15 +335,21 @@ export function setupEventHandlers(root) {
               await createUserFoodWithDetection(getState(), foodData, inputGrams);
             }
 
+            getState().lib.saving = false;
             getState().lib.form = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
             getState().lib.editingId = null;
             getState().lib.adding = false;
             getState().lib.conversionWarning = null;
+            showNotification("Alimento salvo com sucesso!", 'success');
             render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 1800);
           } catch (e) {
             const error = handleError(e, 'lib-submit');
+            getState().lib.saving = false;
             getState().lib.adding = true; // Keep form open on error
+            showNotification(error.message, 'error');
             render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           }
         })();
         break;
@@ -337,47 +368,104 @@ export function setupEventHandlers(root) {
       case "goals-save": {
         ensureGoalsForm(getState());
         const f = getState().goalsForm;
-        if (!f.calories || (typeof f.calories === 'string' && f.calories.trim() === "")) break;
+
+        // Validação usando sistema padrão
+        const rules = {
+          calories: { required: true, min: 1, message: 'Calorias deve ser maior que 0' }
+        };
+
+        const errors = validateForm(rules, f);
+        if (errors.length > 0) {
+          showNotification(errors[0], 'error');
+          render(getState());
+          setTimeout(() => { clearNotification(); render(getState()); }, 3000);
+          break;
+        }
+
         (async () => {
-          await profileApi.updateGoals({
-            calories: parseFloat(f.calories),
-            protein: f.protein ? parseFloat(f.protein) : null,
-            carbs: f.carbs ? parseFloat(f.carbs) : null,
-            fat: f.fat ? parseFloat(f.fat) : null
-          });
-          getState().profile.goals = {
-            calories: parseFloat(f.calories),
-            protein: f.protein ? parseFloat(f.protein) : null,
-            carbs: f.carbs ? parseFloat(f.carbs) : null,
-            fat: f.fat ? parseFloat(f.fat) : null
-          };
-          getState().goalsSaved = true; render(getState());
-          setTimeout(() => { getState().goalsSaved = false; render(getState()); }, 1800);
+          try {
+            getState().goalsSaving = true;
+            render(getState());
+
+            await profileApi.updateGoals({
+              calories: parseFloat(f.calories),
+              protein: f.protein ? parseFloat(f.protein) : null,
+              carbs: f.carbs ? parseFloat(f.carbs) : null,
+              fat: f.fat ? parseFloat(f.fat) : null
+            });
+            getState().profile.goals = {
+              calories: parseFloat(f.calories),
+              protein: f.protein ? parseFloat(f.protein) : null,
+              carbs: f.carbs ? parseFloat(f.carbs) : null,
+              fat: f.fat ? parseFloat(f.fat) : null
+            };
+            getState().goalsSaving = false;
+            showNotification("Metas salvas com sucesso!", 'success');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 1800);
+          } catch (error) {
+            console.error('Erro ao salvar metas:', error);
+            getState().goalsSaving = false;
+            showNotification(error.message || 'Erro ao salvar metas', 'error');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
+          }
         })();
         break;
       }
       case "bio-save": {
         ensureBiometricsForm(getState());
         const f = getState().biometricsForm;
-        if (!f.weight || !f.height || !f.birthDate || !f.gender || !f.activityLevel) break;
-        (async () => {
-          await profileApi.updateBiometrics({
-            weight: parseFloat(f.weight),
-            height: parseFloat(f.height),
-            birth_date: f.birthDate,
-            gender: f.gender,
-            activity_level: f.activityLevel
-          });
-          getState().profile.biometrics = {
-            weight: parseFloat(f.weight),
-            height: parseFloat(f.height),
-            birthDate: f.birthDate,
-            gender: f.gender,
-            activityLevel: f.activityLevel
-          };
-          getState().biometricsSaved = true;
+
+        // Validação usando sistema padrão
+        const rules = {
+          weight: { required: true, min: 1, message: 'Peso deve ser maior que 0' },
+          height: { required: true, min: 1, message: 'Altura deve ser maior que 0' },
+          birthDate: { required: true, message: 'Data de nascimento é obrigatória' },
+          gender: { required: true, message: 'Gênero é obrigatório' },
+          activityLevel: { required: true, message: 'Nível de atividade é obrigatório' }
+        };
+
+        const errors = validateForm(rules, f);
+        if (errors.length > 0) {
+          showNotification(errors[0], 'error');
           render(getState());
-          setTimeout(() => { getState().biometricsSaved = false; render(getState()); }, 1800);
+          setTimeout(() => { clearNotification(); render(getState()); }, 3000);
+          break;
+        }
+
+        (async () => {
+          try {
+            getState().biometricsSaving = true;
+            render(getState());
+
+            await profileApi.updateBiometrics({
+              biometrics: {
+                weight: parseFloat(f.weight),
+                height: parseFloat(f.height),
+                birthDate: f.birthDate,
+                gender: f.gender,
+                activityLevel: f.activityLevel
+              }
+            });
+            getState().profile.biometrics = {
+              weight: parseFloat(f.weight),
+              height: parseFloat(f.height),
+              birthDate: f.birthDate,
+              gender: f.gender,
+              activityLevel: f.activityLevel
+            };
+            getState().biometricsSaving = false;
+            showNotification("Dados biológicos salvos com sucesso!", 'success');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 1800);
+          } catch (error) {
+            console.error('Erro ao salvar biometria:', error);
+            getState().biometricsSaving = false;
+            showNotification(error.message || 'Erro ao salvar dados', 'error');
+            render(getState());
+            setTimeout(() => { clearNotification(); render(getState()); }, 3000);
+          }
         })();
         break;
       }
@@ -521,18 +609,26 @@ export function setupEventHandlers(root) {
         break;
       case "profile-save": {
         const { displayName, email } = getState().profileTab.form;
-        
-        // Validar email com regex
+
+        // Validação usando sistema padrão
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (email && !emailRegex.test(email)) {
-          showNotification('E-mail inválido', 'error');
+        const rules = {
+          email: { pattern: emailRegex, message: 'E-mail inválido' }
+        };
+
+        const errors = validateForm(rules, { email: email || '' });
+        if (errors.length > 0) {
+          showNotification(errors[0], 'error');
           render(getState());
           setTimeout(() => { clearNotification(); render(getState()); }, 3000);
           break;
         }
-        
+
         (async () => {
           try {
+            getState().profileTab.saving = true;
+            render(getState());
+
             if (displayName && displayName !== getState().profile.display_name) {
               await profileApi.updateProfile({ display_name: displayName });
               getState().profile.display_name = displayName;
@@ -541,12 +637,14 @@ export function setupEventHandlers(root) {
               await authApi.updateEmail(email);
               getState().auth.user.email = email;
             }
+            getState().profileTab.saving = false;
             getState().profileTab.editing = false;
-            getState().profileTab.saved = true;
+            showNotification("Perfil atualizado com sucesso!", 'success');
             render(getState());
-            setTimeout(() => { getState().profileTab.saved = false; render(getState()); }, 1800);
+            setTimeout(() => { clearNotification(); render(getState()); }, 1800);
           } catch (e) {
             const error = handleError(e, 'profile-save');
+            getState().profileTab.saving = false;
             showNotification(error.message, 'error');
             render(getState());
             setTimeout(() => { clearNotification(); render(getState()); }, 3000);

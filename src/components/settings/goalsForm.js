@@ -83,8 +83,9 @@ export function goalsFormHTML(state) {
     </div>` : ""}
     
     <div style="display:flex;align-items:center;gap:10px">
-      <button class="btn btn-primary" data-action="goals-save">Salvar metas</button>
-      ${state.goalsSaved ? `<span style="font-size:12.5px;color:var(--good)">metas salvas</span>` : ""}
+      <button class="btn btn-primary" data-action="goals-save" ${state.goalsSaving ? 'disabled' : ''}>
+        ${state.goalsSaving ? 'Salvando...' : 'Salvar metas'}
+      </button>
     </div>
   </div>`;
 }

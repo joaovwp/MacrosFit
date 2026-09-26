@@ -4,7 +4,7 @@ import * as userFoodsApi from '../api/user_foods.js';
 import * as mealsApi from '../api/meals.js';
 import * as profileApi from '../api/profile.js';
 import { dateKey, emptyDay } from '../core/utils.js';
-import { mapProfileFromDB, mapProfileToDB, mapUserFoodFromDB, mapUserFoodToDB } from '../utils/mapper.js';
+import { mapProfileToDB, mapUserFoodFromDB, mapUserFoodToDB } from '../utils/mapper.js';
 
 // UI preferences localStorage (with user id prefix)
 const UI_PREFIX = 'ft-ui-';
@@ -57,7 +57,7 @@ export async function loadProfile() {
   const profile = await profileApi.getProfile();
   if (!profile) return null;
 
-  return mapProfileFromDB(profile);
+  return profile;
 }
 
 export async function saveProfile(profile) {
