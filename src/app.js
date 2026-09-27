@@ -1,9 +1,10 @@
 import { initialState } from './state/state.js';
 import { initializeState, getState } from './state/appState.js';
-import { loadAll, persist, clearAppData } from './core/storage.js';
+import { loadAll, clearAppData } from './core/storage.js';
 import { render } from './app/render.js';
 import { setupEventHandlers } from './app/events.js';
 import { getCurrentUser, onAuthStateChange, signOut } from './api/auth.js';
+import { setupInactivityTracking, endSession } from './core/session.js';
 
 // Limpar chaves globais antigas na primeira execução
 function cleanupOldKeys() {
@@ -30,6 +31,7 @@ async function loadUserData(state, user) {
       state.auth.mode = 'login';
       state.tab = 'auth';
       state.auth.error = 'Esta conta foi desativada';
+      endSession();
       return false;
     }
 
@@ -66,7 +68,18 @@ async function init() {
   try {
     const user = await getCurrentUser();
     if (user) {
-      await loadUserData(state, user);
+      const loaded = await loadUserData(state, user);
+      if (loaded) {
+        setupInactivityTracking(async () => {
+          await signOut();
+          state.auth.user = null;
+          state.auth.mode = 'login';
+          state.tab = 'auth';
+          state.auth.error = 'Sessão expirada por inatividade';
+          endSession();
+          render(state);
+        });
+      }
     } else {
       state.tab = 'auth';
       state.auth.mode = 'login';
@@ -85,12 +98,24 @@ async function init() {
   onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
       state.auth.user = session.user;
-      await loadUserData(state, session.user);
+      const loaded = await loadUserData(state, session.user);
+      if (loaded) {
+        setupInactivityTracking(async () => {
+          await signOut();
+          state.auth.user = null;
+          state.auth.mode = 'login';
+          state.tab = 'auth';
+          state.auth.error = 'Sessão expirada por inatividade';
+          endSession();
+          render(state);
+        });
+      }
       render(state);
     } else if (event === 'SIGNED_OUT') {
       state.auth.user = null;
       state.auth.mode = 'login';
       state.tab = 'auth';
+      endSession();
       render(state);
     }
   });

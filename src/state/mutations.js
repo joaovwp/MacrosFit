@@ -1,5 +1,4 @@
 import { MEAL_TYPES, VALIDATION_LIMITS } from '../core/constants.js';
-import { persist } from '../core/storage.js';
 import { dateKey, emptyDay, normalize, uid } from '../core/utils.js';
 import * as userFoodsApi from '../api/user_foods.js';
 import * as mealsApi from '../api/meals.js';
@@ -448,7 +447,7 @@ export async function deleteFood(state, id) {
     delete next[id];
     state.library = next;
 
-    await persist('library', state.library);
+    // Atualizar estado local (apenas cache, não persistir novamente)
     state.connectionError = null;
   } catch (e) {
     const error = handleError(e, 'deleteFood');
@@ -460,9 +459,7 @@ export async function deleteFood(state, id) {
 export async function resetAll(state) {
   await logAction('data_reset');
 
-  await persist('profile', DEFAULT_PROFILE);
-  await persist('library', {});
-  await persist('diary', {});
+  // Resetar apenas estado local (não afeta banco)
   state.profile = DEFAULT_PROFILE;
   state.library = {};
   state.diary = {};
@@ -619,15 +616,15 @@ export async function importData(state) {
 
     if (data.profile) {
       state.profile = { ...DEFAULT_PROFILE, ...data.profile };
-      await persist('profile', state.profile);
+      // Atualizar estado local (apenas cache, não persistir novamente)
     }
     if (data.library) {
       state.library = data.library;
-      await persist('library', state.library);
+      // Atualizar estado local (apenas cache, não persistir novamente)
     }
     if (data.diary) {
       state.diary = data.diary;
-      await persist('diary', state.diary);
+      // Atualizar estado local (apenas cache, não persistir novamente)
     }
     state.importExport.showImport = false;
     state.importExport.importData = "";

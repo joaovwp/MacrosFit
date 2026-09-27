@@ -21,19 +21,28 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Development: unregister service workers and clear caches
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => {
-        registration.unregister();
-        console.log('SW unregistered:', registration);
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // Development: unregister service workers and clear caches
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          registration.unregister();
+          console.log('SW unregistered (dev):', registration);
+        });
       });
-    });
-    caches.keys().then((cacheNames) => {
-      cacheNames.forEach((cacheName) => {
-        caches.delete(cacheName);
-        console.log('Cache deleted:', cacheName);
+      caches.keys().then((cacheNames) => {
+        cacheNames.forEach((cacheName) => {
+          caches.delete(cacheName);
+          console.log('Cache deleted (dev):', cacheName);
+        });
       });
-    });
+    } else {
+      // Production: register service worker for PWA support
+      navigator.serviceWorker.register('/sw.js').then((registration) => {
+        console.log('SW registered:', registration);
+      }).catch((error) => {
+        console.log('SW registration failed:', error);
+      });
+    }
   });
 }
 

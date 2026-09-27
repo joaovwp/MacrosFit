@@ -22,9 +22,11 @@ const supabaseErrorMap = {
 function classifyError(error) {
   if (!error) return ErrorTypes.CRITICAL;
 
-  // Erros do Supabase
-  if (error.code) {
-    return supabaseErrorMap[error.code] || ErrorTypes.CONNECTION;
+  // Erros de autenticação por mensagem (prioridade alta)
+  if (error.message?.toLowerCase().includes('invalid login credentials') ||
+      error.message?.toLowerCase().includes('email not confirmed') ||
+      error.message?.toLowerCase().includes('auth')) {
+    return ErrorTypes.AUTH;
   }
 
   // Erros de autenticação por status HTTP
@@ -32,23 +34,20 @@ function classifyError(error) {
     return ErrorTypes.AUTH;
   }
 
-  // Erros de autenticação por mensagem
-  if (error.message?.toLowerCase().includes('invalid login credentials') ||
-      error.message?.toLowerCase().includes('email not confirmed') ||
-      error.message?.toLowerCase().includes('auth') || 
-      error.message?.toLowerCase().includes('auth')) {
-    return ErrorTypes.AUTH;
+  // Erros do Supabase
+  if (error.code) {
+    return supabaseErrorMap[error.code] || ErrorTypes.CONNECTION;
   }
 
   // Erros de validação customizados
-  if (error.message?.includes('obrigatório') || 
+  if (error.message?.includes('obrigatório') ||
       error.message?.includes('inválido') ||
       error.message?.includes('deve ser')) {
     return ErrorTypes.VALIDATION;
   }
 
   // Erros de conexão
-  if (error.message?.toLowerCase().includes('network') || 
+  if (error.message?.toLowerCase().includes('network') ||
       error.message?.toLowerCase().includes('fetch') ||
       error.message?.toLowerCase().includes('timeout')) {
     return ErrorTypes.CONNECTION;
@@ -100,8 +99,10 @@ export function handleError(error, context = '') {
   const type = classifyError(error);
   const message = getErrorMessage(error, type);
 
-  // Log no console para debug
-  console.error(`[${context}] ${type}:`, error);
+  // Log no console apenas para erros críticos e de conexão
+  if (type === ErrorTypes.CRITICAL || type === ErrorTypes.CONNECTION) {
+    console.error(`[${context}] ${type}:`, error);
+  }
 
   return {
     type,

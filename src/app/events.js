@@ -595,6 +595,8 @@ export function setupEventHandlers(root) {
         (async () => {
           try {
             await authApi.signOut();
+            const { endSession } = await import('../core/session.js');
+            endSession();
             getState().auth.user = null;
             getState().auth.mode = 'login';
             getState().tab = 'auth';

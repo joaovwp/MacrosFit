@@ -1,4 +1,6 @@
-const CACHE_NAME = 'MacrosFit-static-v1';
+const CACHE_PREFIX = 'MacrosFit-static';
+const CACHE_VERSION = 'v1';
+const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -69,25 +71,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache apenas assets estáticos
+  // Network-first com fallback para cache (garante versão mais recente)
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        if (response) {
-          console.log('[SW] Serving from cache:', event.request.url);
+        if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME)
+          .then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((response) => {
+          if (response) {
+            console.log('[SW] Serving from cache (offline):', event.request.url);
             return response;
           }
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          return response;
-        }).catch(() => {
           return caches.match('/index.html');
         });
       })

@@ -4,7 +4,7 @@ import * as userFoodsApi from '../api/user_foods.js';
 import * as mealsApi from '../api/meals.js';
 import * as profileApi from '../api/profile.js';
 import { dateKey, emptyDay } from '../core/utils.js';
-import { mapProfileToDB, mapUserFoodFromDB, mapUserFoodToDB } from '../utils/mapper.js';
+import { mapUserFoodFromDB } from '../utils/mapper.js';
 
 // UI preferences localStorage (with user id prefix)
 const UI_PREFIX = 'ft-ui-';
@@ -60,20 +60,6 @@ export async function loadProfile() {
   return profile;
 }
 
-export async function saveProfile(profile) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured');
-  }
-
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    throw new Error('Not authenticated');
-  }
-
-  const dbProfile = mapProfileToDB(profile);
-  await profileApi.updateProfile(dbProfile);
-}
-
 export async function loadFoods() {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase not configured');
@@ -94,28 +80,6 @@ export async function loadFoods() {
   });
 
   return foodsMap;
-}
-
-export async function saveFoods(foods) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured');
-  }
-
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    throw new Error('Not authenticated');
-  }
-
-  const user = await authApi.getCurrentUser();
-  if (!user) throw new Error('Not authenticated');
-
-  for (const food of Object.values(foods)) {
-    const dbFood = mapUserFoodToDB(food);
-    await userFoodsApi.createUserFood({
-      ...dbFood,
-      user_id: user.id
-    });
-  }
 }
 
 export async function loadDiary() {
@@ -163,52 +127,6 @@ export async function loadDiary() {
   return diary;
 }
 
-export async function saveDiary(diary) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured');
-  }
-
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    throw new Error('Not authenticated');
-  }
-
-  const user = await authApi.getCurrentUser();
-  if (!user) throw new Error('Not authenticated');
-
-  for (const [date, day] of Object.entries(diary)) {
-    // Group entries by mealType
-    const entriesByMealType = {};
-    day.entries.forEach(entry => {
-      const mealType = entry.mealType || 'outro';
-      if (!entriesByMealType[mealType]) {
-        entriesByMealType[mealType] = [];
-      }
-      entriesByMealType[mealType].push(entry);
-    });
-
-    // For each meal type, get or create meal and add items
-    for (const [mealType, entries] of Object.entries(entriesByMealType)) {
-      const meal = await mealsApi.getOrCreateMeal(date, mealType);
-
-      for (const entry of entries) {
-        await mealsApi.createMealItem({
-          id: entry.id,
-          meal_id: meal.id,
-          user_id: user.id,
-          food_id: entry.food_id,
-          name: entry.name,
-          grams: entry.grams,
-          kcal: entry.kcal,
-          protein: entry.protein,
-          carbs: entry.carbs,
-          fat: entry.fat
-        });
-      }
-    }
-  }
-}
-
 export async function loadAll() {
   const [profile, library, diary] = await Promise.all([
     loadProfile(),
@@ -217,16 +135,6 @@ export async function loadAll() {
   ]);
 
   return { profile, library, diary };
-}
-
-export async function persist(key, value) {
-  if (key === 'profile') {
-    await saveProfile(value);
-  } else if (key === 'library') {
-    await saveFoods(value);
-  } else if (key === 'diary') {
-    await saveDiary(value);
-  }
 }
 
 // Clear app data (for logout) - only removes app keys, not localStorage.clear()
