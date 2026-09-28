@@ -7,7 +7,6 @@ const ALLOWLIST = [
   'tab',
   'viewMonth',
   'selectedKey',
-  'expandedMeals',
   'qa.name',
   'qa.grams',
   'qa.mealType',

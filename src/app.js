@@ -6,6 +6,8 @@ import { getCurrentUser, onAuthStateChange, signOut } from './api/auth.js';
 import { setupInactivityTracking, endSession } from './core/session.js';
 import { dateKey, emptyDay } from './core/utils.js';
 import { mapUserFoodFromDB } from './utils/mapper.js';
+import { restoreUIState } from './core/uiState.js';
+import { groupEntriesByMealId } from './state/selectors.js';
 
 // Limpar chaves globais antigas na primeira execução
 function cleanupOldKeys() {
@@ -98,6 +100,24 @@ async function loadUserData(state, user) {
     state.connectionError = null;
     state.library = loaded.library;
     state.diary = loaded.diary;
+    
+    // Inicializar expandedMeals com as refeições do dia atual
+    const todayKey = dateKey(new Date());
+    const today = loaded.diary[todayKey] || { entries: [] };
+    const todayMeals = groupEntriesByMealId(today);
+    state.expandedMeals = {};
+    todayMeals.forEach(meal => {
+      const mealKey = meal.meal_id || meal.mealType;
+      state.expandedMeals[mealKey] = true;
+    });
+    
+    // Restaurar estado UI (exceto expandedMeals)
+    const restored = restoreUIState();
+    if (restored) {
+      const { expandedMeals, ...restWithoutExpanded } = restored;
+      Object.assign(state, restWithoutExpanded);
+    }
+    
     return true;
   } catch (e) {
     console.error('Error loading user data:', e);

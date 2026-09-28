@@ -6,6 +6,7 @@ import * as authApi from '../api/auth.js';
 import { mapUserFoodToDB, mapUserFoodFromDB } from '../utils/mapper.js';
 import { handleError } from '../core/errorHandler.js';
 import { showNotification } from './state.js';
+import { groupEntriesByMealId } from './selectors.js';
 
 const DEFAULT_PROFILE = {
   goals: null,
@@ -88,6 +89,25 @@ async function loadUserDataAfterImport(state, user) {
     state.profile = profile;
     state.library = library;
     state.diary = diary;
+    
+    // Inicializar expandedMeals com as refeições do dia atual
+    const todayKey = dateKey(new Date());
+    const today = diary[todayKey] || { entries: [] };
+    const todayMeals = groupEntriesByMealId(today);
+    state.expandedMeals = {};
+    todayMeals.forEach(meal => {
+      const mealKey = meal.meal_id || meal.mealType;
+      state.expandedMeals[mealKey] = true;
+    });
+    
+    // Restaurar estado UI (exceto expandedMeals)
+    const { restoreUIState } = await import('../core/uiState.js');
+    const restored = restoreUIState();
+    if (restored) {
+      const { expandedMeals, ...restWithoutExpanded } = restored;
+      Object.assign(state, restWithoutExpanded);
+    }
+    
     return true;
   } catch (e) {
     console.error('Error reloading data after import:', e);
@@ -356,8 +376,16 @@ export async function deleteEntry(state, id) {
     await mealsApi.deleteMealItem(id);
 
     // Remover do estado local (apenas cache, não persistir novamente)
-    const dateKeyStr = todayKey();
-    if (state.diary[dateKeyStr]) {
+    // Buscar entry em todo o diary, não apenas no dia atual
+    let dateKeyStr = null;
+    for (const [key, day] of Object.entries(state.diary)) {
+      if (day.entries.some(e => e.id === id)) {
+        dateKeyStr = key;
+        break;
+      }
+    }
+
+    if (dateKeyStr && state.diary[dateKeyStr]) {
       state.diary[dateKeyStr].entries = state.diary[dateKeyStr].entries.filter(e => e.id !== id);
     }
 

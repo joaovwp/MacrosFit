@@ -3,6 +3,7 @@ import { esc, parseKey, dayTotals, round } from '../../core/utils.js';
 import { MONTHS, MEAL_TYPES } from '../../core/constants.js';
 import { groupEntriesByMealId } from '../../state/selectors.js';
 import { macroBar } from '../shared/macroBar.js';
+import { entryCardHTML } from '../shared/entryCard.js';
 
 export function dayDetailHTML(state) {
   if (!state.selectedKey) return "";
@@ -34,15 +35,38 @@ export function dayDetailHTML(state) {
         fat: acc.fat + e.fat
       }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
 
-      return `<div style="margin-bottom:8px;padding:8px;background:var(--surface2);border-radius:6px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          ${icon(mt.icon, 12, "var(--calories)")}
-          <span style="font-size:12px;font-weight:600">${esc(mt.label)}</span>
-          <span class="mono" style="font-size:11px;color:var(--textMuted);margin-left:auto">${Math.round(mealTotals.kcal)} kcal</span>
+      const mealKey = meal.meal_id || meal.mealType;
+      const isExpanded = state.expandedMeals[mealKey];
+      const mealName = meal.name || mt.label;
+
+      return `<div class="card" style="padding:10px">
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer" data-action="toggle-meal" data-meal-key="${mealKey}">
+          ${icon(isExpanded ? "chevron-down" : "chevron-right", 14, "var(--textMuted)")}
+          ${icon(mt.icon, 14, "var(--calories)")}
+          <div style="font-weight:600;font-size:13px">${esc(mealName)}</div>
+          <div class="mono" style="font-size:12px;color:var(--textMuted);margin-left:auto">
+            ${Math.round(mealTotals.kcal)} kcal
+          </div>
         </div>
-        <div style="font-size:10px;color:var(--textFaint)">
-          ${meal.entries.map(e => `${esc(e.name)} (${e.grams}g)`).join(", ")}
-        </div>
+        ${isExpanded ? `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--borderSoft)">
+            <div style="display:flex;gap:8px;margin-bottom:8px;font-size:11px;color:var(--textMuted)">
+              <span class="mono">P ${round(mealTotals.protein)}g</span>
+              <span class="mono">C ${round(mealTotals.carbs)}g</span>
+              <span class="mono">G ${round(mealTotals.fat)}g</span>
+            </div>
+            ${meal.entries.map((e) => entryCardHTML(e, state.entryEdit)).join("")}
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+              <button class="btn btn-icon" style="padding:4px" data-action="export-meal" data-meal-id="${meal.meal_id}" title="Exportar refeição">${icon("download", 12, "var(--textMuted)")}</button>
+            </div>
+          </div>
+        ` : `
+          <div style="display:flex;gap:8px;margin-top:6px;font-size:10px;color:var(--textFaint)">
+            <span class="mono">P ${round(mealTotals.protein)}g</span>
+            <span class="mono">C ${round(mealTotals.carbs)}g</span>
+            <span class="mono">G ${round(mealTotals.fat)}g</span>
+          </div>
+        `}
       </div>`;
     }).join("")}
   </div>`;

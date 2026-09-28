@@ -2,6 +2,7 @@ import { icon } from '../../core/icons.js';
 import { esc, round, dateKey } from '../../core/utils.js';
 import { MEAL_TYPES } from '../../core/constants.js';
 import { groupEntriesByMealId } from '../../state/selectors.js';
+import { entryCardHTML } from '../shared/entryCard.js';
 
 export function todayEntriesHTML(state) {
   const today = state.diary[dateKey(new Date())] || { entries: [] };
@@ -40,21 +41,7 @@ export function todayEntriesHTML(state) {
               <span class="mono">C ${round(mealTotals.carbs)}g</span>
               <span class="mono">G ${round(mealTotals.fat)}g</span>
             </div>
-            ${meal.entries.map((e) => `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--borderSoft)">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.name)}</div>
-                <div class="mono" style="font-size:10px;color:var(--textMuted);margin-top:1px">${Math.round(e.kcal)} kcal · ${e.grams}g</div>
-              </div>
-              ${state.entryEdit.id === e.id ? `
-                <input class="input" style="width:60px" type="number" value="${esc(state.entryEdit.val)}" data-action="entry-edit-input" autofocus/>
-                <span style="font-size:10px;color:var(--textFaint)">g</span>
-                <button class="btn btn-icon" data-action="entry-edit-confirm" data-id="${e.id}" data-fallback="${e.grams}">${icon("check", 12)}</button>
-                <button class="btn btn-icon" data-action="entry-edit-cancel">${icon("x", 12)}</button>
-              ` : `
-                <button class="btn btn-icon" data-action="entry-edit-start" data-id="${e.id}" data-grams="${e.grams}">${icon("pencil", 12)}</button>
-                <button class="btn btn-icon btn-danger" data-action="entry-delete" data-id="${e.id}">${icon("trash", 12)}</button>
-              `}
-            </div>`).join("")}
+            ${meal.entries.map((e) => entryCardHTML(e, state.entryEdit)).join("")}
             <div style="display:flex;justify-content:flex-end;margin-top:8px">
               <button class="btn btn-icon" style="padding:4px" data-action="export-meal" data-meal-id="${meal.meal_id}" title="Exportar refeição">${icon("download", 12, "var(--textMuted)")}</button>
             </div>
