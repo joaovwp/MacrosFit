@@ -36,29 +36,6 @@ export function qaComputed(state) {
   return { kcal: (basis.kcal * g) / 100, protein: (basis.protein * g) / 100, carbs: (basis.carbs * g) / 100, fat: (basis.fat * g) / 100 };
 }
 
-export function recentFoods(state) {
-  const all = [];
-  Object.values(state.diary).forEach((day) => day.entries.forEach((e) => all.push(e)));
-  // Ordenar por criação mais recente (assumindo que entries são ordenadas por created_at ou id)
-  // Como não temos mais 'time', usamos ordem reversa
-  all.reverse();
-  const seen = new Set(); const out = [];
-  for (const e of all) {
-    const n = normalize(e.name);
-    if (seen.has(n)) continue;
-    seen.add(n);
-    // Se não tiver per100, não pode ser reutilizado
-    if (e.food_id && state.library[e.food_id]) {
-      const food = state.library[e.food_id];
-      out.push({ name: e.name, grams: e.grams, per100: { kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat } });
-    } else if (e.per100) {
-      out.push({ name: e.name, grams: e.grams, per100: e.per100 });
-    }
-    if (out.length >= 8) break;
-  }
-  return out;
-}
-
 export function groupEntriesByMeal(day) {
   const entries = day.entries || [];
   const grouped = {};
@@ -74,13 +51,14 @@ export function groupEntriesByMealId(day) {
   const grouped = {};
 
   entries.forEach(e => {
-    const mealId = e.meal_id;
+    const mealId = e.meal_id || e.mealType || 'outro';
     const mealType = e.mealType || 'outro';
 
     if (!grouped[mealId]) {
       grouped[mealId] = {
         meal_id: mealId,
         mealType: mealType,
+        name: null,
         entries: []
       };
     }

@@ -1,10 +1,9 @@
 import { icon } from '../../core/icons.js';
 import { esc, round } from '../../core/utils.js';
 import { MEAL_TYPES } from '../../core/constants.js';
-import { recentFoods, qaSuggestions, qaBasis, qaComputed } from '../../state/selectors.js';
+import { qaSuggestions, qaBasis, qaComputed } from '../../state/selectors.js';
 
 export function quickAddFormHTML(state) {
-  const recent = recentFoods(state);
   const suggestions = state.qa.showSuggest ? qaSuggestions(state) : [];
   const basis = qaBasis(state);
   const computed = qaComputed(state);
@@ -38,9 +37,6 @@ export function quickAddFormHTML(state) {
       <div style="font-size:11.5px;color:var(--textFaint);margin-bottom:4px">Data (opcional)</div>
       <input class="input" type="date" value="${esc(state.qa.targetDate || "")}" data-action="qa-date-input" placeholder="Hoje"/>
     </div>
-    ${recent.length ? `<div class="ft-scroll" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">
-      ${recent.map((r, i) => `<div class="chip" data-action="qa-pick-recent" data-index="${i}">${esc(r.name)}</div>`).join("")}
-    </div>` : ""}
 
     ${state.qa.conversionWarning ? `<div style="background:var(--surface2);padding:8px;border-radius:6px;margin-bottom:12px;font-size:11px;color:var(--textMuted)">
       ${icon("info", 12, "var(--protein)")} ${esc(state.qa.conversionWarning)}

@@ -15,6 +15,21 @@ export async function getMeals(date) {
   return data;
 }
 
+export async function getAllMeals(userId) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { data, error } = await supabase
+    .from('meals')
+    .select('*, meal_items(*)')
+    .eq('user_id', userId)
+    .order('date', { ascending: true });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function getMeal(id) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase not configured');
@@ -24,39 +39,6 @@ export async function getMeal(id) {
     .from('meals')
     .select('*, meal_items(*)')
     .eq('id', id)
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-export async function getOrCreateMeal(date, mealType) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured');
-  }
-
-  // Try to find existing meal
-  const { data: existingMeal, error: findError } = await supabase
-    .from('meals')
-    .select('*')
-    .eq('date', date)
-    .eq('meal_type', mealType)
-    .maybeSingle();
-
-  if (findError && findError.code !== 'PGRST116') throw findError;
-
-  if (existingMeal) {
-    return existingMeal;
-  }
-
-  // Create new meal if not found
-  const { data, error } = await supabase
-    .from('meals')
-    .insert({
-      date: date,
-      meal_type: mealType
-    })
-    .select()
     .single();
 
   if (error) throw error;
@@ -83,6 +65,30 @@ export async function createMeal(meal) {
   return data;
 }
 
+export async function createNewMeal(date, mealType, name = null) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase not configured');
+  }
+
+  const insertData = {
+    date: date,
+    meal_type: mealType
+  };
+
+  if (name) {
+    insertData.name = name;
+  }
+
+  const { data, error } = await supabase
+    .from('meals')
+    .insert(insertData)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteMeal(id) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase not configured');
@@ -92,6 +98,19 @@ export async function deleteMeal(id) {
     .from('meals')
     .delete()
     .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function deleteAllMeals(userId) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { error } = await supabase
+    .from('meals')
+    .delete()
+    .eq('user_id', userId);
 
   if (error) throw error;
 }

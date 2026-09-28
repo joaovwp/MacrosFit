@@ -1,10 +1,11 @@
-import { initialState } from './state/state.js';
-import { initializeState, getState } from './state/appState.js';
-import { loadAll, clearAppData } from './core/storage.js';
+import { initializeState, getState } from './state/state.js';
+import { clearAppData } from './core/storage.js';
 import { render } from './app/render.js';
 import { setupEventHandlers } from './app/events.js';
 import { getCurrentUser, onAuthStateChange, signOut } from './api/auth.js';
 import { setupInactivityTracking, endSession } from './core/session.js';
+import { dateKey, emptyDay } from './core/utils.js';
+import { mapUserFoodFromDB } from './utils/mapper.js';
 
 // Limpar chaves globais antigas na primeira execução
 function cleanupOldKeys() {
@@ -17,14 +18,70 @@ function cleanupOldKeys() {
   }
 }
 
+// Load data directly from APIs (replaces adapter wrappers)
+async function loadData() {
+  const [{ getProfile }, { getUserFoods }, { getAllMeals }] = await Promise.all([
+    import('./api/profile.js'),
+    import('./api/user_foods.js'),
+    import('./api/meals.js')
+  ]);
+
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const [profile, foods, meals] = await Promise.all([
+    getProfile(),
+    getUserFoods(),
+    getAllMeals(user.id)
+  ]);
+
+  // Convert foods to map
+  const library = {};
+  foods.forEach(food => {
+    const mapped = mapUserFoodFromDB(food);
+    if (mapped) {
+      library[mapped.id] = mapped;
+    }
+  });
+
+  // Convert meals to diary format
+  const diary = {};
+  meals.forEach(meal => {
+    const dateKeyStr = meal.date;
+    if (!diary[dateKeyStr]) {
+      diary[dateKeyStr] = emptyDay();
+    }
+
+    if (meal.meal_items) {
+      meal.meal_items.forEach(item => {
+        diary[dateKeyStr].entries.push({
+          id: item.id,
+          name: item.name,
+          grams: item.grams,
+          kcal: item.kcal,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          per100: null,
+          meal_id: meal.id,
+          mealType: meal.meal_type,
+          food_id: item.food_id
+        });
+      });
+    }
+  });
+
+  return { profile, library, diary };
+}
+
 // Função para carregar perfil e dados do usuário
 async function loadUserData(state, user) {
   try {
-    const { getProfile } = await import('./api/profile.js');
-    const profile = await getProfile();
+    // Load data from Supabase (includes profile)
+    const loaded = await loadData();
 
     // Se perfil estiver desativado, fazer logout
-    if (profile && profile.deactivatedAt) {
+    if (loaded.profile && loaded.profile.deactivatedAt) {
       await signOut();
       await clearAppData(user.id);
       state.auth.user = null;
@@ -35,13 +92,10 @@ async function loadUserData(state, user) {
       return false;
     }
 
-    state.profile = profile;
+    state.profile = loaded.profile;
     state.auth.user = user;
     state.tab = localStorage.getItem('ft-current-tab') || 'hoje';
     state.connectionError = null;
-
-    // Load data from Supabase
-    const loaded = await loadAll();
     state.library = loaded.library;
     state.diary = loaded.diary;
     return true;

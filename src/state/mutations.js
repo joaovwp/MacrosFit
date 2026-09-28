@@ -1,12 +1,11 @@
 import { MEAL_TYPES, VALIDATION_LIMITS } from '../core/constants.js';
-import { dateKey, emptyDay, normalize, uid } from '../core/utils.js';
+import { dateKey, emptyDay, normalize, uid, parseKey } from '../core/utils.js';
 import * as userFoodsApi from '../api/user_foods.js';
 import * as mealsApi from '../api/meals.js';
 import * as authApi from '../api/auth.js';
 import { mapUserFoodToDB, mapUserFoodFromDB } from '../utils/mapper.js';
 import { handleError } from '../core/errorHandler.js';
-import { showNotification } from './appState.js';
-import { logAction } from '../api/audit.js';
+import { showNotification } from './state.js';
 
 const DEFAULT_PROFILE = {
   goals: null,
@@ -37,6 +36,63 @@ function calculatePer100FromFinal(grams, final) {
 
 export function todayKey() {
   return dateKey(new Date());
+}
+
+// Carregar dados do usuário após importação (copia de app.js loadData)
+async function loadUserDataAfterImport(state, user) {
+  try {
+    const profileApi = await import('../api/profile.js');
+    const userFoodsApi = await import('../api/user_foods.js');
+    const mealsApiModule = await import('../api/meals.js');
+
+    const [profile, foods, meals] = await Promise.all([
+      profileApi.getProfile(),
+      userFoodsApi.getUserFoods(),
+      mealsApiModule.getAllMeals(user.id)
+    ]);
+
+    const library = {};
+    foods.forEach(food => {
+      const mapped = mapUserFoodFromDB(food);
+      if (mapped) {
+        library[mapped.id] = mapped;
+      }
+    });
+
+    const diary = {};
+    meals.forEach(meal => {
+      const dateKeyStr = meal.date;
+      if (!diary[dateKeyStr]) {
+        diary[dateKeyStr] = emptyDay();
+      }
+
+      if (meal.meal_items) {
+        meal.meal_items.forEach(item => {
+          diary[dateKeyStr].entries.push({
+            id: item.id,
+            name: item.name,
+            grams: item.grams,
+            kcal: item.kcal,
+            protein: item.protein,
+            carbs: item.carbs,
+            fat: item.fat,
+            per100: null,
+            meal_id: meal.id,
+            mealType: meal.meal_type,
+            food_id: item.food_id
+          });
+        });
+      }
+    });
+
+    state.profile = profile;
+    state.library = library;
+    state.diary = diary;
+    return true;
+  } catch (e) {
+    console.error('Error reloading data after import:', e);
+    return false;
+  }
 }
 
 // Criar novo alimento em user_foods
@@ -243,8 +299,8 @@ export async function saveCompleteMeal(state, date, mealType) {
       throw new Error('Nenhum item adicionado à refeição');
     }
 
-    // Obter ou criar meal
-    const meal = await mealsApi.getOrCreateMeal(date, mealType);
+    // Criar nova meal (cada clique em "Registrar refeição" cria nova meal separada)
+    const meal = await mealsApi.createNewMeal(date, mealType);
 
     // Criar todos os meal_items de uma vez
     for (const item of state.qa.currentMealItems) {
@@ -293,82 +349,6 @@ export async function saveCompleteMeal(state, date, mealType) {
     state.connectionError = error.message;
     throw error;
   }
-}
-export async function addMealItem(state, itemData, date, mealType) {
-  try {
-    const user = await authApi.getCurrentUser();
-    if (!user) throw new Error('Not authenticated');
-
-    // Obter ou criar meal
-    const meal = await mealsApi.getOrCreateMeal(date, mealType);
-
-    // Criar meal_item (deixar o banco gerar o ID automaticamente)
-    const mealItem = await mealsApi.createMealItem({
-      meal_id: meal.id,
-      user_id: user.id,
-      food_id: itemData.food_id,
-      name: itemData.name,
-      grams: itemData.grams,
-      kcal: itemData.kcal,
-      protein: itemData.protein,
-      carbs: itemData.carbs,
-      fat: itemData.fat
-    });
-
-    // Atualizar estado local (apenas cache, não persistir novamente)
-    const dateKeyStr = date;
-    if (!state.diary[dateKeyStr]) {
-      state.diary[dateKeyStr] = emptyDay();
-    }
-
-    state.diary[dateKeyStr].entries.push({
-      id: mealItem.id,
-      name: mealItem.name,
-      grams: mealItem.grams,
-      kcal: mealItem.kcal,
-      protein: mealItem.protein,
-      carbs: mealItem.carbs,
-      fat: mealItem.fat,
-      per100: null,
-      meal_id: meal.id,
-      mealType: mealType,
-      food_id: mealItem.food_id
-    });
-
-    state.connectionError = null;
-
-    return mealItem;
-  } catch (e) {
-    const error = handleError(e, 'addMealItem');
-    state.connectionError = error.message;
-    throw error;
-  }
-}
-
-// Adicionar entrada (compatibilidade com código antigo, usa novo fluxo)
-export async function addEntry(state, entry, targetDate) {
-  const date = targetDate || todayKey();
-  const mealType = state.qa.mealType;
-
-  // Se entry tem per100, calcular valores finais
-  let finalValues;
-  if (entry.per100) {
-    finalValues = calculateMacrosFromPer100(entry.grams, entry.per100);
-  } else {
-    finalValues = {
-      kcal: entry.kcal,
-      protein: entry.protein,
-      carbs: entry.carbs,
-      fat: entry.fat
-    };
-  }
-
-  await addMealItem(state, {
-    food_id: entry.food_id,
-    name: entry.name,
-    grams: entry.grams,
-    ...finalValues
-  }, date, mealType);
 }
 
 export async function deleteEntry(state, id) {
@@ -457,9 +437,13 @@ export async function deleteFood(state, id) {
 }
 
 export async function resetAll(state) {
-  await logAction('data_reset');
+  // Apagar todas as meals do usuário no banco
+  const user = await authApi.getCurrentUser();
+  if (user) {
+    await mealsApi.deleteAllMeals(user.id);
+  }
 
-  // Resetar apenas estado local (não afeta banco)
+  // Resetar estado local
   state.profile = DEFAULT_PROFILE;
   state.library = {};
   state.diary = {};
@@ -616,33 +600,111 @@ export async function importData(state) {
 
     if (data.profile) {
       state.profile = { ...DEFAULT_PROFILE, ...data.profile };
-      // Atualizar estado local (apenas cache, não persistir novamente)
     }
     if (data.library) {
       state.library = data.library;
-      // Atualizar estado local (apenas cache, não persistir novamente)
     }
     if (data.diary) {
-      state.diary = data.diary;
-      // Atualizar estado local (apenas cache, não persistir novamente)
+      const user = await authApi.getCurrentUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Persistir entries no banco criando meals e meal_items
+      for (const [dateKey, day] of Object.entries(data.diary)) {
+        if (!day.entries || !Array.isArray(day.entries)) continue;
+
+        // Agrupar entries por meal_id ou mealType
+        const mealGroups = {};
+        day.entries.forEach(entry => {
+          const groupKey = entry.meal_id || entry.mealType || 'outro';
+          if (!mealGroups[groupKey]) {
+            mealGroups[groupKey] = [];
+          }
+          mealGroups[groupKey].push(entry);
+        });
+
+        // Criar meals e meal_items em paralelo por dia
+        await Promise.all(
+          Object.entries(mealGroups).map(async ([groupKey, entries]) => {
+            const firstEntry = entries[0];
+            let mealType = firstEntry.mealType || 'outro';
+
+            const validMealTypes = ['cafe', 'almoco', 'lanche', 'jantar', 'ceia', 'outro'];
+            if (!validMealTypes.includes(mealType)) {
+              mealType = 'outro';
+            }
+
+            const meal = await mealsApi.createNewMeal(dateKey, mealType, null);
+
+            await Promise.all(
+              entries.map(entry =>
+                mealsApi.createMealItem({
+                  meal_id: meal.id,
+                  user_id: user.id,
+                  food_id: null,
+                  name: entry.name,
+                  grams: entry.grams,
+                  kcal: entry.kcal,
+                  protein: entry.protein,
+                  carbs: entry.carbs,
+                  fat: entry.fat
+                })
+              )
+            );
+          })
+        );
+      }
     }
+
+    // Recarregar dados do banco para garantir sincronização e aparecer no histórico
+    const user = await authApi.getCurrentUser();
+    if (user) {
+      await loadUserDataAfterImport(state, user);
+    }
+
+    // Atualizar viewMonth para o mês mais recente com dados
+    const dates = Object.keys(state.diary || {}).sort();
+    if (dates.length > 0) {
+      const latestDate = parseKey(dates[dates.length - 1]);
+      state.viewMonth = new Date(latestDate.getFullYear(), latestDate.getMonth(), 1);
+    }
+
     state.importExport.showImport = false;
     state.importExport.importData = "";
-    state.qa.msg = "Dados importados com sucesso!";
+    showNotification("Dados importados com sucesso!", 'success');
   } catch (e) {
     const error = handleError(e, 'importData');
     showNotification(error.message, 'error');
   }
 }
 
-export function exportMeal(state, mealType, dateKeyStr) {
+export function exportMeal(state, mealId) {
+  // Encontrar a meal pelo meal_id em todas as entries
+  let mealEntry = null;
+  let mealType = null;
+  let dateKeyStr = null;
+
+  for (const [date, day] of Object.entries(state.diary)) {
+    const found = day.entries.find(e => e.meal_id === mealId);
+    if (found) {
+      mealEntry = found;
+      mealType = found.mealType;
+      dateKeyStr = date;
+      break;
+    }
+  }
+
+  if (!mealEntry) {
+    showNotification("Refeição não encontrada", 'error');
+    return;
+  }
+
   const day = state.diary[dateKeyStr];
   if (!day || !day.entries) {
     showNotification("Não há alimentos neste dia para exportar", 'error');
     return;
   }
 
-  const mealEntries = day.entries.filter(e => e.mealType === mealType);
+  const mealEntries = day.entries.filter(e => e.meal_id === mealId);
   if (mealEntries.length === 0) {
     showNotification("Não há alimentos nesta refeição para exportar", 'error');
     return;
@@ -720,9 +782,19 @@ export async function importMeal(state) {
 
     const mealType = mealData.mealType || state.qa.mealType;
     const date = mealData.date || todayKey();
+    const mealName = mealData.mealName || null;
 
+    // Criar nova meal para esta importação (cada importação cria meal separada)
+    const user = await authApi.getCurrentUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const meal = await mealsApi.createNewMeal(date, mealType, mealName);
+
+    // Criar todos os meal_items desta importação
     for (const item of mealData.items) {
-      await addMealItem(state, {
+      await mealsApi.createMealItem({
+        meal_id: meal.id,
+        user_id: user.id,
         food_id: null,
         name: item.name,
         grams: item.grams,
@@ -730,7 +802,27 @@ export async function importMeal(state) {
         protein: item.protein,
         carbs: item.carbs,
         fat: item.fat
-      }, date, mealType);
+      });
+
+      // Atualizar estado local
+      const dateKeyStr = date;
+      if (!state.diary[dateKeyStr]) {
+        state.diary[dateKeyStr] = emptyDay();
+      }
+
+      state.diary[dateKeyStr].entries.push({
+        id: uid(),
+        name: item.name,
+        grams: item.grams,
+        kcal: item.kcal,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        per100: null,
+        meal_id: meal.id,
+        mealType: mealType,
+        food_id: null
+      });
     }
 
     state.importExport.mealImportData = "";

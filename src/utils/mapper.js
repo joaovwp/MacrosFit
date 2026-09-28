@@ -127,10 +127,10 @@ export function mapUserFoodToDB(food) {
   const result = {
     id: food.id,
     name: food.name,
-    kcal_per_100: food.kcal,
-    protein_per_100: food.protein,
-    carbs_per_100: food.carbs,
-    fat_per_100: food.fat
+    kcal_per_100: food.kcal_per_100,
+    protein_per_100: food.protein_per_100,
+    carbs_per_100: food.carbs_per_100,
+    fat_per_100: food.fat_per_100
   };
 
   return result;

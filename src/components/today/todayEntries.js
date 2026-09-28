@@ -22,12 +22,13 @@ export function todayEntriesHTML(state) {
 
       const mealKey = meal.meal_id || meal.mealType;
       const isExpanded = state.expandedMeals[mealKey];
+      const mealName = meal.name || mt.label;
 
       return `<div class="card" style="padding:10px">
         <div style="display:flex;align-items:center;gap:8px;cursor:pointer" data-action="toggle-meal" data-meal-key="${mealKey}">
           ${icon(isExpanded ? "chevron-down" : "chevron-right", 14, "var(--textMuted)")}
           ${icon(mt.icon, 14, "var(--calories)")}
-          <div style="font-weight:600;font-size:13px">${esc(mt.label)}</div>
+          <div style="font-weight:600;font-size:13px">${esc(mealName)}</div>
           <div class="mono" style="font-size:12px;color:var(--textMuted);margin-left:auto">
             ${Math.round(mealTotals.kcal)} kcal
           </div>
@@ -55,7 +56,7 @@ export function todayEntriesHTML(state) {
               `}
             </div>`).join("")}
             <div style="display:flex;justify-content:flex-end;margin-top:8px">
-              <button class="btn btn-icon" style="padding:4px" data-action="export-meal" data-meal="${meal.mealType}" title="Exportar refeição">${icon("download", 12, "var(--textMuted)")}</button>
+              <button class="btn btn-icon" style="padding:4px" data-action="export-meal" data-meal-id="${meal.meal_id}" title="Exportar refeição">${icon("download", 12, "var(--textMuted)")}</button>
             </div>
           </div>
         ` : `
