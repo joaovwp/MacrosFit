@@ -1,4 +1,4 @@
-import { getState, showNotification, clearNotification } from '../state/state.js';
+import { getState, showNotification } from '../state/state.js';
 import { render } from '../app/render.js';
 import { deleteFood, createUserFoodWithDetection, updateUserFood } from '../state/mutations.js';
 import { searchStandardFoods } from '../api/standard_foods.js';
@@ -40,7 +40,6 @@ export const libraryHandlers = {
     if (errors.length > 0) {
       showNotification(errors[0], 'error');
       render(getState());
-      setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       return;
     }
 
@@ -71,14 +70,12 @@ export const libraryHandlers = {
         getState().lib.conversionWarning = null;
         showNotification("Alimento salvo com sucesso!", 'success');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 1800);
       } catch (e) {
         const error = handleError(e, 'lib-submit');
         getState().lib.saving = false;
         getState().lib.adding = true;
         showNotification(error.message, 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },

@@ -1,4 +1,4 @@
-import { getState, showNotification, clearNotification } from '../state/state.js';
+import { getState, showNotification } from '../state/state.js';
 import { render } from '../app/render.js';
 import * as authApi from '../api/auth.js';
 import { handleError } from '../core/errorHandler.js';
@@ -81,7 +81,6 @@ export const authHandlers = {
         getState().auth.loading = false;
         showNotification("E-mail de recuperação enviado", 'success');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       } catch (e) {
         const error = handleError(e, 'auth-reset-password');
         getState().auth.error = error.message;

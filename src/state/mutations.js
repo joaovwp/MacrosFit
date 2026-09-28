@@ -1,5 +1,5 @@
 import { MEAL_TYPES, VALIDATION_LIMITS } from '../core/constants.js';
-import { dateKey, emptyDay, normalize, uid, parseKey } from '../core/utils.js';
+import { dateKey, emptyDay, normalize, parseKey, uid } from '../core/utils.js';
 import * as userFoodsApi from '../api/user_foods.js';
 import * as mealsApi from '../api/meals.js';
 import * as authApi from '../api/auth.js';
@@ -706,70 +706,62 @@ export async function importData(state) {
 }
 
 export function exportMeal(state, mealId) {
-  // Encontrar a meal pelo meal_id em todas as entries
-  let mealEntry = null;
-  let mealType = null;
-  let dateKeyStr = null;
+  (async () => {
+    try {
+      const user = await authApi.getCurrentUser();
+      if (!user) {
+        showNotification("Não autenticado", 'error');
+        return;
+      }
 
-  for (const [date, day] of Object.entries(state.diary)) {
-    const found = day.entries.find(e => e.meal_id === mealId);
-    if (found) {
-      mealEntry = found;
-      mealType = found.mealType;
-      dateKeyStr = date;
-      break;
+      const meal = await mealsApi.getMeal(mealId);
+      if (!meal) {
+        showNotification("Refeição não encontrada", 'error');
+        return;
+      }
+
+      const mealData = {
+        schemaVersion: "4.0",
+        meals: [
+          {
+            id: meal.id,
+            user_id: user.id,
+            date: meal.date,
+            meal_type: meal.meal_type,
+            name: meal.name || null,
+            meal_items: meal.meal_items ? meal.meal_items.map(item => ({
+              id: item.id,
+              meal_id: item.meal_id,
+              user_id: item.user_id,
+              food_id: item.food_id,
+              name: item.name,
+              grams: item.grams,
+              kcal: item.kcal,
+              protein: item.protein,
+              carbs: item.carbs,
+              fat: item.fat
+            })) : []
+          }
+        ],
+        exportDate: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(mealData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `refeicao-${meal.meal_type}-${meal.date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showNotification("Refeição exportada com sucesso!", 'success');
+    } catch (e) {
+      const error = handleError(e, 'exportMeal');
+      showNotification(error.message, 'error');
     }
-  }
-
-  if (!mealEntry) {
-    showNotification("Refeição não encontrada", 'error');
-    return;
-  }
-
-  const day = state.diary[dateKeyStr];
-  if (!day || !day.entries) {
-    showNotification("Não há alimentos neste dia para exportar", 'error');
-    return;
-  }
-
-  const mealEntries = day.entries.filter(e => e.meal_id === mealId);
-  if (mealEntries.length === 0) {
-    showNotification("Não há alimentos nesta refeição para exportar", 'error');
-    return;
-  }
-
-  const mealData = {
-    schemaVersion: "4.0",
-    mealType: mealType,
-    mealName: MEAL_TYPES.find(mt => mt.id === mealType)?.label || mealType,
-    date: dateKeyStr,
-    items: mealEntries.map(entry => ({
-      name: entry.name,
-      grams: entry.grams,
-      kcal: entry.kcal,
-      protein: entry.protein,
-      carbs: entry.carbs,
-      fat: entry.fat
-    })),
-    totals: mealEntries.reduce((acc, e) => ({
-      kcal: acc.kcal + e.kcal,
-      protein: acc.protein + e.protein,
-      carbs: acc.carbs + e.carbs,
-      fat: acc.fat + e.fat
-    }), { kcal: 0, protein: 0, carbs: 0, fat: 0 }),
-    exportDate: new Date().toISOString(),
-    version: "3.0"
-  };
-
-  const blob = new Blob([JSON.stringify(mealData, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `refeicao-${mealType}-${dateKeyStr}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  })();
 }
 
 export async function importMeal(state) {
@@ -780,81 +772,100 @@ export async function importMeal(state) {
       throw new Error('Versão do schema inválida');
     }
 
-    if (!mealData.items || !Array.isArray(mealData.items)) {
-      throw new Error("Formato inválido: campo 'items' ausente ou não é array");
+    if (!mealData.meals || !Array.isArray(mealData.meals)) {
+      throw new Error("Formato inválido: campo 'meals' ausente ou não é array");
     }
 
-    mealData.items.forEach((item, index) => {
-      if (!item || typeof item !== 'object') {
-        throw new Error(`Item inválido no índice ${index}`);
-      }
-      if (typeof item.name !== 'string' || !item.name.trim()) {
-        throw new Error(`Nome inválido no índice ${index}`);
-      }
-      if (typeof item.grams !== 'number' || item.grams <= 0 || item.grams > VALIDATION_LIMITS.GRAMS_MAX) {
-        throw new Error(`Gramas inválidos para: ${item.name}`);
-      }
-      if (typeof item.kcal !== 'number' || item.kcal < 0 || item.kcal > VALIDATION_LIMITS.KCAL_MAX) {
-        throw new Error(`Calorias inválidas para: ${item.name}`);
-      }
-      if (typeof item.protein !== 'number' || item.protein < 0 || item.protein > VALIDATION_LIMITS.MACRO_MAX) {
-        throw new Error(`Proteína inválida para: ${item.name}`);
-      }
-      if (typeof item.carbs !== 'number' || item.carbs < 0 || item.carbs > VALIDATION_LIMITS.MACRO_MAX) {
-        throw new Error(`Carboidratos inválidos para: ${item.name}`);
-      }
-      if (typeof item.fat !== 'number' || item.fat < 0 || item.fat > VALIDATION_LIMITS.MACRO_MAX) {
-        throw new Error(`Gordura inválida para: ${item.name}`);
-      }
-    });
-
-    const mealType = mealData.mealType || state.qa.mealType;
-    const date = mealData.date || todayKey();
-    const mealName = mealData.mealName || null;
-
-    // Criar nova meal para esta importação (cada importação cria meal separada)
     const user = await authApi.getCurrentUser();
     if (!user) throw new Error('Not authenticated');
 
-    const meal = await mealsApi.createNewMeal(date, mealType, mealName);
+    let importedCount = 0;
 
-    // Criar todos os meal_items desta importação
-    for (const item of mealData.items) {
-      await mealsApi.createMealItem({
-        meal_id: meal.id,
-        user_id: user.id,
-        food_id: null,
-        name: item.name,
-        grams: item.grams,
-        kcal: item.kcal,
-        protein: item.protein,
-        carbs: item.carbs,
-        fat: item.fat
-      });
-
-      // Atualizar estado local
-      const dateKeyStr = date;
-      if (!state.diary[dateKeyStr]) {
-        state.diary[dateKeyStr] = emptyDay();
+    for (const meal of mealData.meals) {
+      if (!meal || typeof meal !== 'object') {
+        throw new Error('Refeição inválida');
+      }
+      if (!meal.date || typeof meal.date !== 'string') {
+        throw new Error('Data da refeição é obrigatória');
+      }
+      if (!meal.meal_type || typeof meal.meal_type !== 'string') {
+        throw new Error('Tipo de refeição é obrigatório');
       }
 
-      state.diary[dateKeyStr].entries.push({
-        id: uid(),
-        name: item.name,
-        grams: item.grams,
-        kcal: item.kcal,
-        protein: item.protein,
-        carbs: item.carbs,
-        fat: item.fat,
-        per100: null,
-        meal_id: meal.id,
-        mealType: mealType,
-        food_id: null
-      });
+      const validMealTypes = MEAL_TYPES.map(mt => mt.id);
+      if (!validMealTypes.includes(meal.meal_type)) {
+        throw new Error(`Tipo de refeição inválido: ${meal.meal_type}. Valores válidos: ${validMealTypes.join(', ')}`);
+      }
+
+      if (!meal.meal_items || !Array.isArray(meal.meal_items)) {
+        throw new Error('Itens da refeição ausentes ou inválidos');
+      }
+
+      for (const item of meal.meal_items) {
+        if (!item || typeof item !== 'object') {
+          throw new Error('Item de refeição inválido');
+        }
+        if (typeof item.name !== 'string' || !item.name.trim()) {
+          throw new Error('Nome do item é obrigatório');
+        }
+        if (typeof item.grams !== 'number' || item.grams <= 0 || item.grams > VALIDATION_LIMITS.GRAMS_MAX) {
+          throw new Error(`Gramas inválidos para: ${item.name}`);
+        }
+        if (typeof item.kcal !== 'number' || item.kcal < 0 || item.kcal > VALIDATION_LIMITS.KCAL_MAX) {
+          throw new Error(`Calorias inválidas para: ${item.name}`);
+        }
+        if (typeof item.protein !== 'number' || item.protein < 0 || item.protein > VALIDATION_LIMITS.MACRO_MAX) {
+          throw new Error(`Proteína inválida para: ${item.name}`);
+        }
+        if (typeof item.carbs !== 'number' || item.carbs < 0 || item.carbs > VALIDATION_LIMITS.MACRO_MAX) {
+          throw new Error(`Carboidratos inválidos para: ${item.name}`);
+        }
+        if (typeof item.fat !== 'number' || item.fat < 0 || item.fat > VALIDATION_LIMITS.MACRO_MAX) {
+          throw new Error(`Gordura inválida para: ${item.name}`);
+        }
+      }
+
+      const createdMeal = await mealsApi.createNewMeal(meal.date, meal.meal_type, meal.name || null);
+
+      for (const item of meal.meal_items) {
+        await mealsApi.createMealItem({
+          meal_id: createdMeal.id,
+          user_id: user.id,
+          food_id: item.food_id || null,
+          name: item.name,
+          grams: item.grams,
+          kcal: item.kcal,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat
+        });
+
+        const dateKeyStr = meal.date;
+        if (!state.diary[dateKeyStr]) {
+          state.diary[dateKeyStr] = emptyDay();
+        }
+
+        state.diary[dateKeyStr].entries.push({
+          id: uid(),
+          name: item.name,
+          grams: item.grams,
+          kcal: item.kcal,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          per100: null,
+          meal_id: createdMeal.id,
+          mealType: meal.meal_type,
+          food_id: item.food_id || null
+        });
+        importedCount++;
+      }
     }
 
+    await loadUserDataAfterImport(state, user);
+
     state.importExport.mealImportData = "";
-    state.qa.msg = `Refeição importada com sucesso! (${mealData.items.length} itens)`;
+    showNotification(`Refeição importada com sucesso! (${importedCount} itens)`, 'success');
   } catch (e) {
     const error = handleError(e, 'importMeal');
     showNotification(error.message, 'error');

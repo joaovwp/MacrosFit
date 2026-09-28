@@ -1,13 +1,13 @@
 import { qaBasis, qaComputed } from '../state/selectors.js';
 import {
   createUserFood, createUserFoodWithDetection,
-  addTemporaryMealItem, removeTemporaryMealItem, clearTemporaryMealItems, saveCompleteMeal
+  addTemporaryMealItem, removeTemporaryMealItem, clearTemporaryMealItems, saveCompleteMeal, importMeal
 } from '../state/mutations.js';
 import { uid, normalize, round, esc } from '../core/utils.js';
 import { render } from '../app/render.js';
 import { searchStandardFoods } from '../api/standard_foods.js';
 import { mapStandardFoodFromDB } from '../utils/mapper.js';
-import { getState, showNotification, clearNotification } from '../state/state.js';
+import { getState, showNotification } from '../state/state.js';
 import { handleError } from '../core/errorHandler.js';
 
 let qaSearchTimeout = null;
@@ -82,9 +82,8 @@ export const todayHandlers = {
         const inputGrams = parseFloat(f.grams) || 100;
 
         if (foodData.kcal <= 0) {
-          getState().qa.msg = "kcal deve ser maior que 0";
+          showNotification("kcal deve ser maior que 0", 'error');
           render(getState());
-          setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 1800);
           return;
         }
 
@@ -115,14 +114,12 @@ export const todayHandlers = {
         getState().qa.grams = "";
         getState().qa.newFoodMode = false;
         getState().qa.newFoodForm = { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" };
-        getState().qa.msg = "Alimento cadastrado e adicionado!";
+        showNotification("Alimento cadastrado e adicionado!", 'success');
         render(getState());
-        setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 1800);
       } catch (e) {
         const error = handleError(e, 'qa-new-food-submit');
-        getState().qa.msg = error.message;
+        showNotification(error.message, 'error');
         render(getState());
-        setTimeout(() => { getState().qa.msg = ""; render(getState()); }, 3000);
       }
     })();
   },
@@ -177,13 +174,11 @@ export const todayHandlers = {
         getState().qa.saving = false;
         showNotification("Refeição registrada com sucesso!", 'success');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 1800);
       } catch (e) {
         const error = handleError(e, 'qa-save-meal');
         getState().qa.saving = false;
         showNotification(error.message, 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },
@@ -253,5 +248,42 @@ export const todayHandlers = {
         render(getState());
       }
     }, 200);
+  },
+
+  'show-meal-import': (el, ev) => {
+    getState().importExport.showMealImport = true;
+    getState().importExport.showMealImportExample = false;
+    render(getState());
+  },
+
+  'hide-meal-import': (el, ev) => {
+    getState().importExport.showMealImport = false;
+    getState().importExport.showMealImportExample = false;
+    getState().importExport.mealImportData = "";
+    render(getState());
+  },
+
+  'show-meal-import-example': (el, ev) => {
+    getState().importExport.showMealImportExample = !getState().importExport.showMealImportExample;
+    render(getState());
+  },
+
+  'import-meal': (el, ev) => {
+    (async () => {
+      try {
+        await importMeal(getState());
+        getState().importExport.showMealImport = false;
+        getState().importExport.showMealImportExample = false;
+        render(getState());
+      } catch (e) {
+        const error = handleError(e, 'import-meal');
+        showNotification(error.message, 'error');
+        render(getState());
+      }
+    })();
+  },
+
+  'meal-import-text-input': (el, ev) => {
+    getState().importExport.mealImportData = el.value;
   }
 };

@@ -1,7 +1,7 @@
-import { getState, showNotification, clearNotification } from '../state/state.js';
+import { getState, showNotification } from '../state/state.js';
 import { render } from '../app/render.js';
 import * as profileApi from '../api/profile.js';
-import { resetAll, exportData, importData, exportMeal, importMeal } from '../state/mutations.js';
+import { resetAll, exportData, importData, exportMeal } from '../state/mutations.js';
 import { ensureGoalsForm } from '../components/settings/goalsForm.js';
 import { ensureBiometricsForm } from '../components/settings/biometricsForm.js';
 import { validateForm, calculateMacrosFromDistribution, calculateBMR, calculateTDEE } from '../core/utils.js';
@@ -21,7 +21,6 @@ export const settingsHandlers = {
     if (errors.length > 0) {
       showNotification(errors[0], 'error');
       render(getState());
-      setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       return;
     }
 
@@ -45,13 +44,11 @@ export const settingsHandlers = {
         getState().goalsSaving = false;
         showNotification("Metas salvas com sucesso!", 'success');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 1800);
       } catch (error) {
         console.error('Erro ao salvar metas:', error);
         getState().goalsSaving = false;
         showNotification(error.message || 'Erro ao salvar metas', 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },
@@ -72,7 +69,6 @@ export const settingsHandlers = {
     if (errors.length > 0) {
       showNotification(errors[0], 'error');
       render(getState());
-      setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       return;
     }
 
@@ -100,13 +96,11 @@ export const settingsHandlers = {
         getState().biometricsSaving = false;
         showNotification("Dados biológicos salvos com sucesso!", 'success');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 1800);
       } catch (error) {
         console.error('Erro ao salvar biometria:', error);
         getState().biometricsSaving = false;
         showNotification(error.message || 'Erro ao salvar dados', 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },
@@ -127,11 +121,9 @@ export const settingsHandlers = {
         await resetAll(getState());
         showNotification("Dados apagados com sucesso!", 'success');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 1800);
       } catch (e) {
         showNotification(e.message || 'Erro ao apagar dados', 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },
@@ -157,19 +149,10 @@ export const settingsHandlers = {
       try {
         await importData(getState());
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 1800);
       } catch (e) {
         showNotification(e.message || 'Erro ao importar dados', 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
-    })();
-  },
-
-  'import-meal': (el, ev) => {
-    (async () => {
-      await importMeal(getState());
-      render(getState());
     })();
   },
 
@@ -219,9 +202,5 @@ export const settingsHandlers = {
 
   'import-text-input': (el, ev) => {
     getState().importExport.importData = el.value;
-  },
-
-  'meal-import-text-input': (el, ev) => {
-    getState().importExport.mealImportData = el.value;
   }
 };

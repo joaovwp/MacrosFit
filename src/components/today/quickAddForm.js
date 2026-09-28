@@ -155,31 +155,45 @@ export function quickAddFormHTML(state) {
     ` : ""}
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--borderSoft)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button class="btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px" data-action="show-meal-import">
         ${icon("upload", 17, "var(--calories)")}
         <div style="font-weight:700;font-size:15px">Importar refeição</div>
-      </div>
-      <textarea class="input" placeholder="Cole o JSON da refeição aqui..." style="min-height:100px;font-family:monospace;font-size:12px;resize:vertical;margin-bottom:12px" data-action="meal-import-text-input">${esc(state.importExport.mealImportData || "")}</textarea>
-      <div style="background:var(--surface2);padding:8px;border-radius:6px;font-size:10px;color:var(--textMuted);margin-bottom:12px;overflow-x:auto">
-        <div style="font-size:11px;color:var(--textFaint);margin-bottom:4px">Exemplo:</div>
-        <pre style="margin:0;white-space:pre-wrap;font-size:9px">{
-  "mealType": "almoco",
-  "mealName": "Almoço",
-  "items": [
+      </button>
+      ${state.importExport.showMealImport ? `
+        <div class="card" style="padding:14px;margin-top:12px;background:var(--surface2)">
+          <textarea class="input" placeholder="Cole o JSON da refeição aqui..." style="min-height:100px;font-family:monospace;font-size:12px;resize:vertical;margin-bottom:12px" data-action="meal-import-text-input">${esc(state.importExport.mealImportData || "")}</textarea>
+          ${state.importExport.showMealImportExample ? `
+            <div style="background:var(--surface3);padding:8px;border-radius:6px;font-size:10px;color:var(--textMuted);margin-bottom:12px;overflow-x:auto">
+              <div style="font-size:11px;color:var(--textFaint);margin-bottom:4px">Exemplo:</div>
+              <pre style="margin:0;white-space:pre-wrap;font-size:9px">{
+  "schemaVersion": "4.0",
+  "meals": [
     {
-      "name": "Arroz",
-      "grams": 100,
-      "kcal": 130,
-      "protein": 2.7,
-      "carbs": 28,
-      "fat": 0.3
+      "date": "2026-09-28",
+      "meal_type": "cafe",
+      "name": "Café da manhã",
+      "meal_items": [
+        {
+          "name": "Ovos cozidos",
+          "grams": 100,
+          "kcal": 155,
+          "protein": 13,
+          "carbs": 1.1,
+          "fat": 11
+        }
+      ]
     }
   ]
 }</pre>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" data-action="import-meal">${icon("upload", 14)} Importar refeição</button>
-      </div>
+            </div>
+          ` : ""}
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" data-action="import-meal">${icon("upload", 14)} Importar refeição</button>
+            <button class="btn" data-action="show-meal-import-example">${icon("info", 14)} Mostrar exemplo</button>
+            <button class="btn" data-action="hide-meal-import">${icon("x", 14)} Cancelar</button>
+          </div>
+        </div>
+      ` : ""}
     </div>
   </div>`;
 }

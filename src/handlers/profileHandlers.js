@@ -1,4 +1,4 @@
-import { getState, showNotification, clearNotification } from '../state/state.js';
+import { getState, showNotification } from '../state/state.js';
 import { render } from '../app/render.js';
 import * as authApi from '../api/auth.js';
 import * as profileApi from '../api/profile.js';
@@ -33,7 +33,6 @@ export const profileHandlers = {
         const error = handleError(e, 'profile-logout');
         showNotification(error.message, 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },
@@ -50,7 +49,6 @@ export const profileHandlers = {
     if (errors.length > 0) {
       showNotification(errors[0], 'error');
       render(getState());
-      setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       return;
     }
 
@@ -71,13 +69,11 @@ export const profileHandlers = {
         getState().profileTab.editing = false;
         showNotification("Perfil atualizado com sucesso!", 'success');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 1800);
       } catch (e) {
         const error = handleError(e, 'profile-save');
         getState().profileTab.saving = false;
         showNotification(error.message, 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },
@@ -110,7 +106,6 @@ export const profileHandlers = {
       getState().profileTab.passwordChanged = false;
       showNotification('Preencha a senha atual', 'error');
       render(getState());
-      setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       return;
     }
     
@@ -118,7 +113,6 @@ export const profileHandlers = {
       getState().profileTab.passwordChanged = false;
       showNotification('Preencha a nova senha', 'error');
       render(getState());
-      setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       return;
     }
     
@@ -126,7 +120,6 @@ export const profileHandlers = {
       getState().profileTab.passwordChanged = false;
       showNotification('A nova senha deve ter no mínimo 8 caracteres', 'error');
       render(getState());
-      setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       return;
     }
     
@@ -134,7 +127,6 @@ export const profileHandlers = {
       getState().profileTab.passwordChanged = false;
       showNotification('A nova senha e a confirmação não coincidem', 'error');
       render(getState());
-      setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       return;
     }
     
@@ -152,7 +144,6 @@ export const profileHandlers = {
         const error = handleError(e, 'profile-change-password');
         showNotification(error.message, 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },
@@ -177,7 +168,6 @@ export const profileHandlers = {
         const error = handleError(e, 'profile-confirm-deactivate');
         showNotification(error.message, 'error');
         render(getState());
-        setTimeout(() => { clearNotification(); render(getState()); }, 3000);
       }
     })();
   },
