@@ -303,6 +303,14 @@ export function removeTemporaryMealItem(state, itemId) {
   state.qa.currentMealItems = state.qa.currentMealItems.filter(item => item.id !== itemId);
 }
 
+// Atualizar item temporário da refeição atual
+export function updateTemporaryMealItem(state, index, item) {
+  state.qa.currentMealItems[index] = {
+    ...state.qa.currentMealItems[index],
+    ...item
+  };
+}
+
 // Limpar todos os itens temporários
 export function clearTemporaryMealItems(state) {
   state.qa.currentMealItems = [];

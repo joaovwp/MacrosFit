@@ -1,7 +1,7 @@
 import { qaBasis, qaComputed } from '../state/selectors.js';
 import {
   createUserFood, createUserFoodWithDetection,
-  addTemporaryMealItem, removeTemporaryMealItem, clearTemporaryMealItems, saveCompleteMeal, importMeal
+  addTemporaryMealItem, removeTemporaryMealItem, updateTemporaryMealItem, clearTemporaryMealItems, saveCompleteMeal, importMeal
 } from '../state/mutations.js';
 import { uid, normalize, round, esc } from '../core/utils.js';
 import { render } from '../app/render.js';
@@ -142,7 +142,15 @@ export const todayHandlers = {
       totals = { kcal: k, protein: parseFloat(getState().qa.manual.protein) || 0, carbs: parseFloat(getState().qa.manual.carbs) || 0, fat: parseFloat(getState().qa.manual.fat) || 0 };
       per100 = { kcal: (totals.kcal / grams) * 100, protein: (totals.protein / grams) * 100, carbs: (totals.carbs / grams) * 100, fat: (totals.fat / grams) * 100 };
     }
-    addTemporaryMealItem(getState(), { id: uid(), food_id, name, grams, ...totals, per100 });
+
+    const editingIndex = getState().qa.editingItemIndex;
+    if (editingIndex !== null) {
+      updateTemporaryMealItem(getState(), editingIndex, { food_id, name, grams, ...totals, per100 });
+      getState().qa.editingItemIndex = null;
+    } else {
+      addTemporaryMealItem(getState(), { id: uid(), food_id, name, grams, ...totals, per100 });
+    }
+
     getState().qa.name = "";
     getState().qa.grams = "";
     getState().qa.manualOpen = false;
@@ -156,6 +164,28 @@ export const todayHandlers = {
   'qa-remove-temp-item': (el, ev) => {
     const index = Number(el.dataset.index);
     removeTemporaryMealItem(getState(), getState().qa.currentMealItems[index].id);
+    render(getState());
+  },
+
+  'qa-edit-temp-item': (el, ev) => {
+    const index = Number(el.dataset.index);
+    const item = getState().qa.currentMealItems[index];
+
+    getState().qa.editingItemIndex = index;
+    getState().qa.name = item.name;
+    getState().qa.grams = item.grams.toString();
+    getState().qa.manualOpen = false;
+    getState().qa.showSuggest = false;
+    render(getState());
+  },
+
+  'qa-cancel-edit': (el, ev) => {
+    getState().qa.editingItemIndex = null;
+    getState().qa.name = "";
+    getState().qa.grams = "";
+    getState().qa.manualOpen = false;
+    getState().qa.manual = { kcal: "", protein: "", carbs: "", fat: "" };
+    getState().qa.showSuggest = false;
     render(getState());
   },
 

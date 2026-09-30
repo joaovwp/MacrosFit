@@ -9,6 +9,7 @@ export function quickAddFormHTML(state) {
   const computed = qaComputed(state);
   const grams = parseFloat(state.qa.grams) || 0;
   const canAddItem = state.qa.name.trim() && grams > 0 && (computed || parseFloat(state.qa.manual.kcal) > 0);
+  const isEditing = state.qa.editingItemIndex !== null;
   const canSubmitNewFood = state.qa.newFoodForm.name.trim() &&
     parseFloat(state.qa.newFoodForm.kcal) > 0 &&
     parseFloat(state.qa.newFoodForm.protein) >= 0 &&
@@ -117,7 +118,8 @@ export function quickAddFormHTML(state) {
         </div>
       </div>` : `<div style="margin-bottom:10px"><a class="link" data-action="qa-open-manual">Não encontrou o alimento? Cadastrar novo</a></div>`) : ""}
       <div style="display:flex;align-items:center;gap:10px">
-        <button class="btn btn-primary" data-action="qa-add-item" ${canAddItem ? "" : "disabled"}>${icon("plus", 15)} Adicionar</button>
+        <button class="btn btn-primary" data-action="qa-add-item" ${canAddItem ? "" : "disabled"}>${icon("plus", 15)} ${isEditing ? "Atualizar" : "Adicionar"}</button>
+        ${isEditing ? `<button class="btn" data-action="qa-cancel-edit">${icon("x", 15)} Cancelar</button>` : ""}
       </div>
     `}
 
@@ -141,7 +143,8 @@ export function quickAddFormHTML(state) {
                   <span class="mono" style="color:var(--fat)">G ${round(item.fat)}g</span>
                 </div>
               </div>
-              <button class="btn btn-icon" data-action="qa-remove-temp-item" data-index="${index}">${icon("trash-2", 14, "var(--error)")}</button>
+              <button class="btn btn-icon" data-action="qa-edit-temp-item" data-index="${index}">${icon("pencil", 14, "var(--textMuted)")}</button>
+              <button class="btn btn-icon" data-action="qa-remove-temp-item" data-index="${index}">${icon("trash", 14, "var(--error)")}</button>
             </div>
           `).join("")}
         </div>

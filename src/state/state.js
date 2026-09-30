@@ -21,7 +21,8 @@ export const initialState = {
     newFoodForm: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },
     currentMealItems: [],
     conversionWarning: null,
-    standardSuggestions: []
+    standardSuggestions: [],
+    editingItemIndex: null
   },
   entryEdit: { id: null, val: "" },
   trendMetric: "calories",
