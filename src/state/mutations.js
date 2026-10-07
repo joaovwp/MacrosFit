@@ -183,7 +183,7 @@ export async function createUserFoodWithDetection(state, foodData, inputGrams) {
         carbs_per_100: foodData.carbs * factor,
         fat_per_100: foodData.fat * factor
       };
-      warning = `Convertendo valores de ${grams}g para 100g. Multiplicando por ${factor.toFixed(2)}.`;
+
     } else {
       finalData = {
         kcal_per_100: foodData.kcal,
@@ -234,7 +234,7 @@ export async function updateUserFood(state, id, foodData, inputGrams) {
         carbs_per_100: foodData.carbs * factor,
         fat_per_100: foodData.fat * factor
       };
-      warning = `Convertendo valores de ${grams}g para 100g. Multiplicando por ${factor.toFixed(2)}.`;
+
     } else {
       finalData = {
         kcal_per_100: foodData.kcal,

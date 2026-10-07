@@ -90,7 +90,7 @@ export function quickAddFormHTML(state) {
             ${suggestions.map((f) => `<div class="suggest-item" data-action="qa-pick-suggestion" data-id="${f.id}" data-source="${f.source || 'user'}">
               <div class="qa-suggestion-header">
                 <span>${esc(f.name)}</span>
-                <span class="qa-badge qa-badge--${f.source === 'standard' ? 'standard' : 'user'}">${f.source === 'standard' ? 'TACO' : 'Meu'}</span>
+                <span class="qa-badge qa-badge--${f.source === 'taco' || f.source === 'custom' || f.source === 'supplement' ? 'standard' : 'user'}">${f.source === 'taco' ? 'TACO' : (f.source === 'custom' ? 'Adicionado' : (f.source === 'supplement' ? 'Suplemento' : 'Meu'))}</span>
               </div>
               <span class="qa-suggestion-macros">${Math.round(f.kcal)} kcal (100g) · P ${round(f.protein)}g · C ${round(f.carbs)}g · G ${round(f.fat)}g</span>
             </div>`).join("")}

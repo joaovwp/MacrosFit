@@ -221,7 +221,7 @@ export const todayHandlers = {
     qaSearchTimeout = setTimeout(async () => {
       if (el.value.trim().length >= 2) {
         try {
-          const standardFoods = await searchStandardFoods(el.value);
+          const standardFoods = await searchStandardFoods(el.value, false);
           getState().qa.standardSuggestions = standardFoods.map(mapStandardFoodFromDB);
           render(getState());
         } catch (e) {

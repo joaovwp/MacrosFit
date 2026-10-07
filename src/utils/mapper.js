@@ -140,11 +140,12 @@ export function mapUserFoodToDB(food) {
 export function mapStandardFoodFromDB(row) {
   return {
     id:      row.id,
-    name:    row.name,
+    name:    row.display_name || row.name,
     kcal:    row.kcal_per_100,
     protein: row.protein_per_100,
     carbs:   row.carbs_per_100,
     fat:     row.fat_per_100,
-    source:  'standard'
+    source:  row.source || 'standard',
+    isStandard: row.is_standard
   };
 }

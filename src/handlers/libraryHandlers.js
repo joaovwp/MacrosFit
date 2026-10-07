@@ -1,5 +1,5 @@
 import { getState, showNotification } from '../state/state.js';
-import { render } from '../app/render.js';
+import { render, scheduleRender } from '../app/render.js';
 import { deleteFood, createUserFoodWithDetection, updateUserFood } from '../state/mutations.js';
 import { searchStandardFoods } from '../api/standard_foods.js';
 import { mapStandardFoodFromDB } from '../utils/mapper.js';
@@ -99,12 +99,13 @@ export const libraryHandlers = {
 
   'lib-search-input': (el, ev) => {
     getState().lib.query = el.value;
+    getState().lib.showAll = false;
 
     clearTimeout(libSearchTimeout);
     libSearchTimeout = setTimeout(async () => {
       if (el.value.trim().length >= 2) {
         try {
-          const standardFoods = await searchStandardFoods(el.value);
+          const standardFoods = await searchStandardFoods(el.value, false);
           getState().lib.standardFoods = standardFoods.map(mapStandardFoodFromDB);
           render(getState());
         } catch (e) {
@@ -117,7 +118,25 @@ export const libraryHandlers = {
     }, 200);
   },
 
+  'lib-show-all': (el, ev) => {
+    getState().lib.showAll = true;
+    const query = getState().lib.query;
+
+    clearTimeout(libSearchTimeout);
+    libSearchTimeout = setTimeout(async () => {
+      try {
+        const standardFoods = await searchStandardFoods(query, true);
+        getState().lib.standardFoods = standardFoods.map(mapStandardFoodFromDB);
+        render(getState());
+      } catch (e) {
+        console.error('Error searching standard foods:', e);
+      }
+    }, 200);
+  },
+
   'lib-form-input': (el, ev) => {
     getState().lib.form[el.dataset.field] = el.value;
-  }
+  },
+
+
 };

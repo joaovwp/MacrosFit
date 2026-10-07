@@ -6,6 +6,8 @@ import { historyHandlers } from '../handlers/historyHandlers.js';
 import { profileHandlers } from '../handlers/profileHandlers.js';
 import { navigationHandlers } from '../handlers/navigationHandlers.js';
 import { entriesHandlers } from '../handlers/entriesHandlers.js';
+import { getState } from '../state/state.js';
+import { render } from './render.js';
 
 const allHandlers = {
   ...authHandlers,
@@ -36,6 +38,15 @@ export function setupEventHandlers(root) {
     const handler = allHandlers[action];
     if (handler) {
       handler(el, ev);
+    }
+  });
+
+  // Handler específico para select de filtro - usa change, não input
+  root.addEventListener('change', (ev) => {
+    if (ev.target.id === 'lib-filter') {
+      ev.stopPropagation();
+      getState().lib.filter = ev.target.value;
+      requestAnimationFrame(() => render(getState()));
     }
   });
 

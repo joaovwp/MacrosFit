@@ -28,6 +28,8 @@ export const initialState = {
   trendMetric: "calories",
   lib: {
     query: "",
+    filter: "all",
+    showAll: false,
     adding: false,
     saving: false,
     form: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },

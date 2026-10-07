@@ -20,9 +20,10 @@ export const navigationHandlers = {
     if (state.tab === "config") { state.importExport.showImport = false; }
     if (state.tab === "alimentos") {
       state.lib.standardFoods = [];
+      state.lib.filter = 'all';
       (async () => {
         try {
-          const standardFoods = await searchStandardFoods('');
+          const standardFoods = await searchStandardFoods('', true);
           state.lib.standardFoods = standardFoods.map(mapStandardFoodFromDB);
           render(state);
         } catch (e) {

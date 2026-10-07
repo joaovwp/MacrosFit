@@ -37,3 +37,6 @@ yarn-error.log*
 
 # Local-only files
 .dev/
+
+# Database exports (sensitive IDs)
+*.csv

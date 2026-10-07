@@ -3,8 +3,22 @@ import { esc, normalize, round } from '../../core/utils.js';
 
 export function libraryViewHTML(state) {
   const q = normalize(state.lib.query);
-  const libraryList = Object.values(state.library).filter((f) => (!q || normalize(f.name).includes(q))).sort((a, b) => a.name.localeCompare(b.name));
-  const standardList = (state.lib.standardFoods || []).filter((f) => (!q || normalize(f.name).includes(q))).sort((a, b) => a.name.localeCompare(b.name));
+  const filter = state.lib.filter || 'all';
+
+  const libraryList = Object.values(state.library).filter((f) => {
+    const matchesQuery = !q || normalize(f.name).includes(q);
+    const matchesFilter = filter === 'all' || filter === 'user';
+    return matchesQuery && matchesFilter;
+  }).sort((a, b) => a.name.localeCompare(b.name));
+
+  const standardList = (state.lib.standardFoods || []).filter((f) => {
+    const matchesQuery = !q || normalize(f.name).includes(q);
+    const matchesFilter = filter === 'all' ||
+      (filter === 'taco' && f.source === 'taco') ||
+      (filter === 'custom' && f.source === 'custom') ||
+      (filter === 'supplement' && f.source === 'supplement');
+    return matchesQuery && matchesFilter;
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   return `<div style="display:flex;flex-direction:column;gap:16px">
     <div class="card" style="padding:16px">
@@ -15,6 +29,13 @@ export function libraryViewHTML(state) {
           <span style="position:absolute;left:10px;top:10px">${icon("search", 14, "var(--textFaint)")}</span>
           <input id="lib-search-input" class="input" style="padding-left:30px" placeholder="Buscar alimento" value="${esc(state.lib.query)}" data-action="lib-search-input"/>
         </div>
+        <select id="lib-filter" class="input" style="width:140px">
+          <option value="all" ${filter === 'all' ? 'selected' : ''}>Todos</option>
+          <option value="user" ${filter === 'user' ? 'selected' : ''}>Meus</option>
+          <option value="taco" ${filter === 'taco' ? 'selected' : ''}>TACO</option>
+          <option value="custom" ${filter === 'custom' ? 'selected' : ''}>Adicionados</option>
+          <option value="supplement" ${filter === 'supplement' ? 'selected' : ''}>Suplementos</option>
+        </select>
         <button class="btn btn-primary" data-action="lib-toggle-add">${icon("plus", 15)} Novo</button>
       </div>
       ${state.lib.adding ? `<div class="card" style="padding:14px;margin-bottom:14px;background:var(--surface2)">
@@ -71,18 +92,23 @@ export function libraryViewHTML(state) {
       </div>` : ""}
 
       ${standardList.length > 0 ? `<div>
-        <div style="font-size:12px;font-weight:600;color:var(--textMuted);margin-bottom:8px">Alimentos padrão (TACO)</div>
+        <div style="font-size:12px;font-weight:600;color:var(--textMuted);margin-bottom:8px">Alimentos padrão</div>
         <div class="card" style="padding:4px">
-          ${standardList.map((f) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--borderSoft)">
+          ${standardList.map((f) => {
+            const badge = f.source === 'supplement' ? 'Suplemento' : (f.source === 'custom' ? 'Adicionado' : 'TACO');
+            const badgeColor = f.source === 'supplement' ? 'var(--carbs)' : (f.source === 'custom' ? 'var(--calories)' : 'var(--protein)');
+            return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--borderSoft)">
             <div style="flex:1">
               <div style="display:flex;align-items:center;gap:6px">
                 <span style="font-size:13.5px;font-weight:600">${esc(f.name)}</span>
-                <span class="qa-badge qa-badge--standard">TACO</span>
+                <span class="qa-badge" style="background:${badgeColor};color:white;font-size:10px;padding:2px 6px;border-radius:4px">${badge}</span>
               </div>
               <div class="mono" style="font-size:11px;color:var(--textMuted);margin-top:2px">${Math.round(f.kcal)} kcal · P${round(f.protein)}g C${round(f.carbs)}g G${round(f.fat)}g /100g</div>
             </div>
-          </div>`).join("")}
+          </div>`;
+          }).join("")}
         </div>
+        ${!state.lib.showAll && state.lib.query ? `<button class="btn" style="width:100%;margin-top:8px;font-size:12px" data-action="lib-show-all">Ver todas as variações</button>` : ""}
       </div>` : ""}
 
       ${libraryList.length === 0 && standardList.length === 0 ? `<div class="card" style="padding:20px;text-align:center;color:var(--textFaint);font-size:13.5px">Nenhum alimento encontrado. Busque por nome ou adicione novos alimentos.</div>` : ""}
