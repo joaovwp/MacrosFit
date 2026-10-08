@@ -126,6 +126,12 @@ export function quickAddFormHTML(state) {
     ${state.qa.currentMealItems.length > 0 ? `
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--borderSoft)">
         <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--textMuted)">Itens da refeição (${state.qa.currentMealItems.length})</div>
+        <div style="display:flex;gap:14px;font-size:12.5px;color:var(--textMuted);margin-bottom:10px;flex-wrap:wrap;padding:8px;background:var(--surface2);border-radius:6px">
+          <span class="mono" style="color:var(--calories)">${Math.round(state.qa.currentMealItems.reduce((sum, i) => sum + i.kcal, 0))} kcal</span>
+          <span class="mono" style="color:var(--protein)">P ${round(state.qa.currentMealItems.reduce((sum, i) => sum + i.protein, 0))}g</span>
+          <span class="mono" style="color:var(--carbs)">C ${round(state.qa.currentMealItems.reduce((sum, i) => sum + i.carbs, 0))}g</span>
+          <span class="mono" style="color:var(--fat)">G ${round(state.qa.currentMealItems.reduce((sum, i) => sum + i.fat, 0))}g</span>
+        </div>
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
           ${state.qa.currentMealItems.map((item, index) => `
             <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface2);border-radius:6px">
