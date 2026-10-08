@@ -50,16 +50,16 @@ export function setupEventHandlers(root) {
     }
   });
 
-  root.addEventListener('blur', (ev) => {
-    const el = ev.target.closest('[data-action]');
-    if (!el) return;
-    const action = el.dataset.action;
-    // qa-name-input has special blur handling
-    if (action === 'qa-name-input') {
-      const handler = allHandlers['qa-name-input-blur'];
-      if (handler) {
-        handler(el, ev);
+  // Fechar sugestões ao clicar fora
+  document.addEventListener('click', (ev) => {
+    const state = getState();
+    if (state.qa.showSuggest) {
+      const qaNameInput = document.getElementById('qa-name');
+      const suggestBox = document.querySelector('.suggest');
+      if (qaNameInput && suggestBox && !qaNameInput.contains(ev.target) && !suggestBox.contains(ev.target)) {
+        state.qa.showSuggest = false;
+        render(state);
       }
     }
-  }, true);
+  });
 }

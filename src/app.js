@@ -8,6 +8,7 @@ import { dateKey, emptyDay } from './core/utils.js';
 import { mapUserFoodFromDB } from './utils/mapper.js';
 import { restoreUIState } from './core/uiState.js';
 import { groupEntriesByMealId } from './state/selectors.js';
+import { resetTabState } from './handlers/navigationHandlers.js';
 
 // Limpar chaves globais antigas na primeira execução
 function cleanupOldKeys() {
@@ -167,6 +168,22 @@ async function init() {
 
   // Renderizar apenas após verificar autenticação
   render(state);
+
+  // Initialize history state on first load
+  if (!history.state) {
+    history.replaceState({ tab: state.tab }, '', `#${state.tab}`);
+  }
+
+  // Handle browser back/forward navigation
+  window.addEventListener('popstate', (ev) => {
+    if (ev.state && ev.state.tab) {
+      state.tab = ev.state.tab;
+      localStorage.setItem('ft-current-tab', state.tab);
+      resetTabState(state, state.tab);
+      state.sidebarOpen = false;
+      render(state);
+    }
+  });
 
   // onAuthStateChange só atualiza sessão em memória
   onAuthStateChange(async (event, session) => {

@@ -20,7 +20,7 @@ export const todayHandlers = {
     let food;
     if (source === 'user') {
       food = getState().library[id];
-    } else if (source === 'standard') {
+    } else {
       food = getState().qa.standardSuggestions?.find(f => f.id === id);
     }
 
@@ -269,15 +269,6 @@ export const todayHandlers = {
 
   'qa-new-food-input': (el, ev) => {
     getState().qa.newFoodForm[el.dataset.field] = el.value;
-  },
-
-  'qa-name-input-blur': (el, ev) => {
-    setTimeout(() => {
-      if (!ev.relatedTarget || !ev.relatedTarget.closest('.suggest')) {
-        getState().qa.showSuggest = false;
-        render(getState());
-      }
-    }, 200);
   },
 
   'show-meal-import': (el, ev) => {
