@@ -200,7 +200,8 @@ export const todayHandlers = {
         getState().qa.saving = true;
         render(getState());
 
-        await saveCompleteMeal(getState(), getState().qa.targetDate || dateKey(new Date()), getState().qa.mealType);
+        const targetDate = getState().qa.targetDate || dateKey(new Date());
+        await saveCompleteMeal(getState(), targetDate, getState().qa.mealType);
         getState().qa.saving = false;
         showNotification("Refeição registrada com sucesso!", 'success');
         render(getState());

@@ -879,3 +879,22 @@ export async function importMeal(state) {
     showNotification(error.message, 'error');
   }
 }
+
+export async function deleteMeal(state, mealId) {
+  try {
+    await mealsApi.deleteMeal(mealId);
+
+    // Remover todos os entries associados a essa meal do estado local
+    for (const [key, day] of Object.entries(state.diary)) {
+      if (day.entries.some(e => e.meal_id === mealId)) {
+        state.diary[key].entries = state.diary[key].entries.filter(e => e.meal_id !== mealId);
+      }
+    }
+
+    state.connectionError = null;
+  } catch (e) {
+    const error = handleError(e, 'deleteMeal');
+    state.connectionError = error.message;
+    throw error;
+  }
+}

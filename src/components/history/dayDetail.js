@@ -56,7 +56,8 @@ export function dayDetailHTML(state) {
               <span class="mono">G ${round(mealTotals.fat)}g</span>
             </div>
             ${meal.entries.map((e) => entryCardHTML(e, state.entryEdit)).join("")}
-            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:4px">
+              <button class="btn btn-icon" style="padding:4px" data-action="delete-meal" data-meal-id="${meal.meal_id}" title="Excluir refeição">${icon("trash", 12, "var(--error)")}</button>
               <button class="btn btn-icon" style="padding:4px" data-action="export-meal" data-meal-id="${meal.meal_id}" title="Exportar refeição">${icon("download", 12, "var(--textMuted)")}</button>
             </div>
           </div>

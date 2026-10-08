@@ -1,6 +1,7 @@
 import { getState } from '../state/state.js';
 import { render } from '../app/render.js';
-import { deleteEntry, editEntryGrams } from '../state/mutations.js';
+import { deleteEntry, editEntryGrams, deleteMeal } from '../state/mutations.js';
+import { showNotification } from '../state/state.js';
 
 export const entriesHandlers = {
   'entry-edit-start': (el, ev) => {
@@ -37,5 +38,18 @@ export const entriesHandlers = {
     const mealKey = el.dataset.mealKey;
     getState().expandedMeals[mealKey] = !getState().expandedMeals[mealKey];
     render(getState());
+  },
+
+  'delete-meal': (el, ev) => {
+    (async () => {
+      try {
+        await deleteMeal(getState(), el.dataset.mealId);
+        showNotification("Refeição excluída com sucesso!", 'success');
+        render(getState());
+      } catch (e) {
+        showNotification("Erro ao excluir refeição", 'error');
+        render(getState());
+      }
+    })();
   }
 };
