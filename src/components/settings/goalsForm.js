@@ -5,7 +5,7 @@ import { MACRO_DISTRIBUTIONS, CALORIE_GOALS } from '../../core/constants.js';
 
 export function ensureGoalsForm(state) {
   if (!state.goalsForm) {
-    const g = state.profile.goals || { calories: "", protein: "", carbs: "", fat: "" };
+    const g = state.profile?.goals || { calories: "", protein: "", carbs: "", fat: "" };
     state.goalsForm = { calories: g.calories || "", protein: g.protein || "", carbs: g.carbs || "", fat: g.fat || "" };
   }
 }
@@ -14,7 +14,7 @@ export function goalsFormHTML(state) {
   ensureGoalsForm(state);
   const form = state.goalsForm;
   
-  const bio = state.profile.biometrics;
+  const bio = state.profile?.biometrics;
   const tdee = bio && bio.weight && bio.height && bio.birthDate && bio.gender && bio.activityLevel 
     ? calculateTDEE(calculateBMR(bio.weight, bio.height, bio.birthDate, bio.gender), bio.activityLevel)
     : null;

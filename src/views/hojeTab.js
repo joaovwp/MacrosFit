@@ -6,7 +6,7 @@ import { quickAddFormHTML } from '../components/today/quickAddForm.js';
 import { todayEntriesHTML } from '../components/today/todayEntries.js';
 
 export function hojeTabHTML(state) {
-  const goals = state.profile.goals;
+  const goals = state.profile?.goals;
   if (!goals) {
     return `<div class="card" style="padding:28px;text-align:center">
       ${icon("sparkles", 22, "var(--calories)", "margin:0 auto 10px")}

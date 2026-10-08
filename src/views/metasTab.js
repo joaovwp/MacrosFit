@@ -5,7 +5,7 @@ import { icon } from '../core/icons.js';
 import { esc } from '../core/utils.js';
 
 function tdeeInfoCard(state) {
-  const bio = state.profile.biometrics;
+  const bio = state.profile?.biometrics;
   if (!bio || !bio.weight || !bio.height || !bio.birthDate || !bio.gender || !bio.activityLevel) {
     return '';
   }
@@ -41,7 +41,7 @@ function tdeeInfoCard(state) {
 }
 
 export function metasTabHTML(state) {
-  const goals = state.goalsForm || state.profile.goals;
+  const goals = state.goalsForm || state.profile?.goals;
   let distributionHTML = '';
 
   if (goals && (parseFloat(goals.protein) > 0 || parseFloat(goals.carbs) > 0 || parseFloat(goals.fat) > 0)) {

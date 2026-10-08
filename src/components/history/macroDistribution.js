@@ -1,7 +1,7 @@
 import { parseKey, dayTotals } from '../../core/utils.js';
 
 export function macroDistributionHTML(state) {
-  const goals = state.profile.goals;
+  const goals = state.profile?.goals;
   if (!goals) return "";
   
   const period = state.historyPeriod || 21;

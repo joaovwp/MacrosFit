@@ -5,7 +5,7 @@ import { calculateBMR, calculateTDEE, calculateAge } from '../../core/utils.js';
 
 export function ensureBiometricsForm(state) {
   if (!state.biometricsForm) {
-    const b = state.profile.biometrics || { weight: null, height: null, birthDate: null, gender: null, activityLevel: null };
+    const b = state.profile?.biometrics || { weight: null, height: null, birthDate: null, gender: null, activityLevel: null };
     state.biometricsForm = { 
       weight: b.weight || "", 
       height: b.height || "", 

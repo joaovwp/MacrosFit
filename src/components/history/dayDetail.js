@@ -8,7 +8,7 @@ import { entryCardHTML } from '../shared/entryCard.js';
 export function dayDetailHTML(state) {
   if (!state.selectedKey) return "";
   const day = state.diary[state.selectedKey] || { entries: [] };
-  const goals = state.profile.goals;
+  const goals = state.profile?.goals;
   const t = dayTotals(day);
   const d = parseKey(state.selectedKey);
 

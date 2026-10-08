@@ -122,6 +122,18 @@ async function loadUserData(state, user) {
     return true;
   } catch (e) {
     console.error('Error loading user data:', e);
+
+    if (e.code === 'PGRST301' || e.code === 'PGRST303' || e.message?.includes('JWT')) {
+      console.warn('JWT error detected, forcing reauth');
+      await signOut();
+      state.auth.user = null;
+      state.auth.mode = 'login';
+      state.tab = 'auth';
+      state.auth.error = 'Sessão expirada. Entre novamente.';
+      endSession();
+      return false;
+    }
+
     state.connectionError = 'Erro ao carregar dados: ' + e.message + '. Tente novamente.';
     state.auth.user = user;
     state.tab = 'hoje';

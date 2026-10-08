@@ -11,7 +11,7 @@ export function insightsGridHTML(state) {
     const k = dateKey(cursor);
     if (state.diary[k] && state.diary[k].entries.length > 0) { streak++; cursor = addDays(cursor, -1); } else break;
   }
-  const goals = state.profile.goals;
+  const goals = state.profile?.goals;
   const period = state.historyPeriod || 21;
   const periodKeys = keys.filter((k) => (new Date() - parseKey(k)) / 86400000 <= period);
   

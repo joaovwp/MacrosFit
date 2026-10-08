@@ -4,8 +4,8 @@
   "description": "Rastreador nutricional pessoal para controle de calorias e macros",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#f59e0b",
+  "background_color": "#12151B",
+  "theme_color": "#E8B04B",
   "orientation": "portrait",
   "scope": "/",
   "icons": [

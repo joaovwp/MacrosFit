@@ -75,7 +75,7 @@ export function trendChartHTML(state) {
     data.push({ label: `${d.getDate()}/${d.getMonth() + 1}`, value: day && day.entries.length ? t.kcal : null });
   }
   
-  const goalVal = state.profile.goals ? state.profile.goals.calories : null;
+  const goalVal = state.profile?.goals ? state.profile.goals.calories : null;
   
   // Stats
   const vals = data.map((d) => d.value).filter((v) => v != null);

@@ -12,7 +12,7 @@ export function calendarMonthHTML(state) {
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
   const todayK = dateKey(new Date());
-  const goals = state.profile.goals;
+  const goals = state.profile?.goals;
 
   return `<div class="card" style="padding:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
