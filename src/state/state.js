@@ -3,6 +3,7 @@ import { render } from '../app/render.js';
 export const initialState = {
   profile: null,
   library: {},
+  foods: [],
   diary: {},
   tab: "hoje",
   sidebarOpen: false,
@@ -22,14 +23,15 @@ export const initialState = {
     currentMealItems: [],
     conversionWarning: null,
     standardSuggestions: [],
-    editingItemIndex: null
+    editingItemIndex: null,
+    editMacros: false,
+    editedMacros: { kcal: "", protein: "", carbs: "", fat: "" }
   },
   entryEdit: { id: null, val: "" },
   trendMetric: "calories",
   lib: {
     query: "",
     filter: "all",
-    showAll: false,
     adding: false,
     saving: false,
     form: { name: "", kcal: "", protein: "", carbs: "", fat: "", grams: "" },

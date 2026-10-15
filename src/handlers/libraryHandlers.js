@@ -1,8 +1,7 @@
 import { getState, showNotification } from '../state/state.js';
 import { render, scheduleRender } from '../app/render.js';
 import { deleteFood, createUserFoodWithDetection, updateUserFood } from '../state/mutations.js';
-import { searchStandardFoods } from '../api/standard_foods.js';
-import { mapStandardFoodFromDB } from '../utils/mapper.js';
+import { searchFoods } from '../utils/search.js';
 import { validateForm } from '../core/utils.js';
 import { handleError } from '../core/errorHandler.js';
 
@@ -99,38 +98,21 @@ export const libraryHandlers = {
 
   'lib-search-input': (el, ev) => {
     getState().lib.query = el.value;
-    getState().lib.showAll = false;
 
     clearTimeout(libSearchTimeout);
-    libSearchTimeout = setTimeout(async () => {
-      if (el.value.trim().length >= 2) {
-        try {
-          const standardFoods = await searchStandardFoods(el.value, false);
-          getState().lib.standardFoods = standardFoods.map(mapStandardFoodFromDB);
-          render(getState());
-        } catch (e) {
-          console.error('Error searching standard foods:', e);
-        }
-      } else {
-        getState().lib.standardFoods = [];
-        render(getState());
-      }
-    }, 200);
-  },
-
-  'lib-show-all': (el, ev) => {
-    getState().lib.showAll = true;
-    const query = getState().lib.query;
-
-    clearTimeout(libSearchTimeout);
-    libSearchTimeout = setTimeout(async () => {
-      try {
-        const standardFoods = await searchStandardFoods(query, true);
-        getState().lib.standardFoods = standardFoods.map(mapStandardFoodFromDB);
-        render(getState());
-      } catch (e) {
-        console.error('Error searching standard foods:', e);
-      }
+    libSearchTimeout = setTimeout(() => {
+      const query = el.value.trim();
+      const results = searchFoods(getState().foods, query || '');
+      getState().lib.standardFoods = results.map(f => ({
+        id: f.slug,
+        name: f.name,
+        kcal: f.kcal_per_100,
+        protein: f.protein_per_100,
+        carbs: f.carbs_per_100,
+        fat: f.fat_per_100,
+        source: f.source === 'padrão' ? 'standard' : f.source
+      }));
+      render(getState());
     }, 200);
   },
 

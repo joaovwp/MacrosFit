@@ -135,17 +135,3 @@ export function mapUserFoodToDB(food) {
 
   return result;
 }
-
-// Mapear standard_food do Supabase (snake_case) para app (camelCase)
-export function mapStandardFoodFromDB(row) {
-  return {
-    id:      row.id,
-    name:    row.display_name || row.name,
-    kcal:    row.kcal_per_100,
-    protein: row.protein_per_100,
-    carbs:   row.carbs_per_100,
-    fat:     row.fat_per_100,
-    source:  row.source || 'standard',
-    isStandard: row.is_standard
-  };
-}

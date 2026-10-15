@@ -55,7 +55,7 @@ O **MacrosFit** é um rastreador nutricional pessoal desenvolvido para facilitar
 - `meals`: Contém os registros de refeições por data.
 - `meal_items`: Detalha os itens alimentares de cada refeição.
 - `user_foods`: Alimentos criados e personalizados pelo usuário.
-- `standard_foods`: Banco de dados oficial de alimentos (TACO).
+- `foods`: Banco de dados oficial de alimentos (TACO e adições), versionado no repositório.
 
 ---
 

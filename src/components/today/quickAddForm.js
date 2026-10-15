@@ -90,7 +90,7 @@ export function quickAddFormHTML(state) {
             ${suggestions.map((f) => `<div class="suggest-item" data-action="qa-pick-suggestion" data-id="${f.id}" data-source="${f.source || 'user'}">
               <div class="qa-suggestion-header">
                 <span>${esc(f.name)}</span>
-                <span class="qa-badge qa-badge--${f.source === 'taco' || f.source === 'custom' || f.source === 'supplement' ? 'standard' : 'user'}">${f.source === 'taco' ? 'TACO' : (f.source === 'custom' ? 'Adicionado' : (f.source === 'supplement' ? 'Suplemento' : 'Meu'))}</span>
+                <span class="qa-badge qa-badge--${f.source === 'standard' || f.source === 'supplement' ? 'standard' : 'user'}">${f.source === 'standard' ? 'Padrão' : (f.source === 'supplement' ? 'Suplemento' : 'Meu')}</span>
               </div>
               <span class="qa-suggestion-macros">${Math.round(f.kcal)} kcal (100g) · P ${round(f.protein)}g · C ${round(f.carbs)}g · G ${round(f.fat)}g</span>
             </div>`).join("")}
@@ -104,6 +104,32 @@ export function quickAddFormHTML(state) {
         <span class="mono" style="color:var(--carbs)">C ${round(computed.carbs)}g</span>
         <span class="mono" style="color:var(--fat)">G ${round(computed.fat)}g</span>
       </div>` : ""}
+      ${state.qa.name.trim() && !state.qa.newFoodMode ? `
+        <div style="margin-bottom:10px">
+          ${state.qa.editMacros ? `
+            <div style="font-size:11px;color:var(--textMuted);margin-bottom:6px">Macros por 100g (editar para este item)</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+              <div>
+                <div style="font-size:10px;color:var(--calories);margin-bottom:2px">K (kcal)</div>
+                <input class="input" placeholder="0" type="number" value="${esc(state.qa.editedMacros.kcal)}" data-action="qa-edited-macros-input" data-field="kcal" style="border-color:var(--calories)"/>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--protein);margin-bottom:2px">P (prot)</div>
+                <input class="input" placeholder="0" type="number" value="${esc(state.qa.editedMacros.protein)}" data-action="qa-edited-macros-input" data-field="protein" style="border-color:var(--protein)"/>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--carbs);margin-bottom:2px">C (carb)</div>
+                <input class="input" placeholder="0" type="number" value="${esc(state.qa.editedMacros.carbs)}" data-action="qa-edited-macros-input" data-field="carbs" style="border-color:var(--carbs)"/>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--fat);margin-bottom:2px">G (gord)</div>
+                <input class="input" placeholder="0" type="number" value="${esc(state.qa.editedMacros.fat)}" data-action="qa-edited-macros-input" data-field="fat" style="border-color:var(--fat)"/>
+              </div>
+            </div>
+            <a class="link" data-action="qa-toggle-edit-macros">Cancelar edição</a>
+          ` : `<a class="link" data-action="qa-toggle-edit-macros">Editar macros por 100g</a>`}
+        </div>
+      ` : ""}
       ${!computed && state.qa.name.trim() ? (state.qa.manualOpen ? `<div style="margin-bottom:10px">
         <div style="font-size:12px;color:var(--textMuted);margin-bottom:6px">Alimento não encontrado na biblioteca</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">

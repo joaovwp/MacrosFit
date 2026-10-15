@@ -1,7 +1,6 @@
 import { getState } from '../state/state.js';
 import { render } from '../app/render.js';
-import { searchStandardFoods } from '../api/standard_foods.js';
-import { mapStandardFoodFromDB } from '../utils/mapper.js';
+import { searchFoods } from '../utils/search.js';
 
 function resetTabState(state, tab) {
   if (tab === "metas") { state.goalsForm = null; state.confirmDelete = false; state.selectedCalorieGoal = null; state.selectedMacroDistribution = null; }
@@ -11,17 +10,16 @@ function resetTabState(state, tab) {
   if (tab === "alimentos") {
     state.lib.standardFoods = [];
     state.lib.filter = 'all';
-    (async () => {
-      try {
-        const standardFoods = await searchStandardFoods('', true);
-        state.lib.standardFoods = standardFoods.map(mapStandardFoodFromDB);
-        render(state);
-      } catch (e) {
-        console.error('Error loading standard foods:', e);
-        state.lib.standardFoods = [];
-        render(state);
-      }
-    })();
+    const results = searchFoods(state.foods, '');
+    state.lib.standardFoods = results.map(f => ({
+      id: f.slug,
+      name: f.name,
+      kcal: f.kcal_per_100,
+      protein: f.protein_per_100,
+      carbs: f.carbs_per_100,
+      fat: f.fat_per_100,
+      source: f.source === 'padrão' ? 'standard' : f.source
+    }));
   }
 }
 

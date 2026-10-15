@@ -45,14 +45,62 @@ export const authHandlers = {
         getState().auth.user = user;
         getState().auth.loading = false;
 
-        const { getProfile } = await import('../api/profile.js');
-        const profile = await getProfile();
-        getState().profile = profile;
+        const [{ getProfile }, { getUserFoods }, { getAllMeals }, { getFoods }] = await Promise.all([
+          import('../api/profile.js'),
+          import('../api/user_foods.js'),
+          import('../api/meals.js'),
+          import('../api/foods.js')
+        ]);
 
-        const { loadAll } = await import('../core/storage.js');
-        const loaded = await loadAll();
-        getState().library = loaded.library;
-        getState().diary = loaded.diary;
+        const [profile, userFoods, meals, foods] = await Promise.all([
+          getProfile(),
+          getUserFoods(),
+          getAllMeals(user.id),
+          getFoods()
+        ]);
+
+        const { mapUserFoodFromDB } = await import('../utils/mapper.js');
+        const { emptyDay } = await import('../core/utils.js');
+        const { groupEntriesByMealId } = await import('../state/selectors.js');
+
+        const library = {};
+        userFoods.forEach(food => {
+          const mapped = mapUserFoodFromDB(food);
+          if (mapped) {
+            library[mapped.id] = mapped;
+          }
+        });
+
+        const diary = {};
+        meals.forEach(meal => {
+          const dateKeyStr = meal.date;
+          if (!diary[dateKeyStr]) {
+            diary[dateKeyStr] = emptyDay();
+          }
+
+          if (meal.meal_items) {
+            meal.meal_items.forEach(item => {
+              diary[dateKeyStr].entries.push({
+                id: item.id,
+                name: item.name,
+                grams: item.grams,
+                kcal: item.kcal,
+                protein: item.protein,
+                carbs: item.carbs,
+                fat: item.fat,
+                per100: null,
+                meal_id: meal.id,
+                mealType: meal.meal_type,
+                food_id: item.food_id
+              });
+            });
+          }
+        });
+
+        getState().profile = profile;
+        getState().library = library;
+        getState().foods = foods;
+        getState().diary = diary;
 
         getState().tab = localStorage.getItem('ft-current-tab') || 'hoje';
         getState().connectionError = null;

@@ -5,8 +5,7 @@ import {
 } from '../state/mutations.js';
 import { uid, normalize, round, esc, dateKey } from '../core/utils.js';
 import { render } from '../app/render.js';
-import { searchStandardFoods } from '../api/standard_foods.js';
-import { mapStandardFoodFromDB } from '../utils/mapper.js';
+import { searchFoods } from '../utils/search.js';
 import { getState, showNotification } from '../state/state.js';
 import { handleError } from '../core/errorHandler.js';
 
@@ -29,8 +28,32 @@ export const todayHandlers = {
       getState().qa.grams = "100";
       getState().qa.manualOpen = false;
       getState().qa.showSuggest = false;
+      getState().qa.editMacros = false;
+      getState().qa.editedMacros = { kcal: "", protein: "", carbs: "", fat: "" };
       render(getState());
     }
+  },
+
+  'qa-toggle-edit-macros': (el, ev) => {
+    getState().qa.editMacros = !getState().qa.editMacros;
+    if (getState().qa.editMacros) {
+      const basis = getState().qa.standardSuggestions?.find(f => f.name === getState().qa.name) ||
+                    Object.values(getState().library).find(f => f.name === getState().qa.name);
+      if (basis) {
+        getState().qa.editedMacros = {
+          kcal: basis.kcal.toString(),
+          protein: basis.protein.toString(),
+          carbs: basis.carbs.toString(),
+          fat: basis.fat.toString()
+        };
+      }
+    }
+    render(getState());
+  },
+
+  'qa-edited-macros-input': (el, ev) => {
+    const field = el.dataset.field;
+    getState().qa.editedMacros[field] = el.value;
   },
 
   'qa-meal-select': (el, ev) => {
@@ -219,20 +242,24 @@ export const todayHandlers = {
     getState().qa.showSuggest = !!el.value.trim();
 
     clearTimeout(qaSearchTimeout);
-    qaSearchTimeout = setTimeout(async () => {
-      if (el.value.trim().length >= 2) {
-        try {
-          const standardFoods = await searchStandardFoods(el.value, false);
-          getState().qa.standardSuggestions = standardFoods.map(mapStandardFoodFromDB);
-          render(getState());
-        } catch (e) {
-          console.error('Error searching standard foods:', e);
-        }
+    qaSearchTimeout = setTimeout(() => {
+      const query = el.value.trim();
+      if (query.length >= 2) {
+        const results = searchFoods(getState().foods, query);
+        getState().qa.standardSuggestions = results.map(f => ({
+          id: f.slug,
+          name: f.name,
+          kcal: f.kcal_per_100,
+          protein: f.protein_per_100,
+          carbs: f.carbs_per_100,
+          fat: f.fat_per_100,
+          source: f.source === 'padrão' ? 'standard' : f.source
+        }));
       } else {
         getState().qa.standardSuggestions = [];
-        if (getState().qa.showSuggest) {
-          render(getState());
-        }
+      }
+      if (getState().qa.showSuggest) {
+        render(getState());
       }
     }, 200);
   },

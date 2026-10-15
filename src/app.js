@@ -23,24 +23,26 @@ function cleanupOldKeys() {
 
 // Load data directly from APIs (replaces adapter wrappers)
 async function loadData() {
-  const [{ getProfile }, { getUserFoods }, { getAllMeals }] = await Promise.all([
+  const [{ getProfile }, { getUserFoods }, { getAllMeals }, { getFoods }] = await Promise.all([
     import('./api/profile.js'),
     import('./api/user_foods.js'),
-    import('./api/meals.js')
+    import('./api/meals.js'),
+    import('./api/foods.js')
   ]);
 
   const user = await getCurrentUser();
   if (!user) throw new Error('Not authenticated');
 
-  const [profile, foods, meals] = await Promise.all([
+  const [profile, userFoods, meals, foods] = await Promise.all([
     getProfile(),
     getUserFoods(),
-    getAllMeals(user.id)
+    getAllMeals(user.id),
+    getFoods()
   ]);
 
-  // Convert foods to map
+  // Convert user foods to map
   const library = {};
-  foods.forEach(food => {
+  userFoods.forEach(food => {
     const mapped = mapUserFoodFromDB(food);
     if (mapped) {
       library[mapped.id] = mapped;
@@ -74,7 +76,7 @@ async function loadData() {
     }
   });
 
-  return { profile, library, diary };
+  return { profile, library, diary, foods };
 }
 
 // Função para carregar perfil e dados do usuário
@@ -100,6 +102,7 @@ async function loadUserData(state, user) {
     state.tab = localStorage.getItem('ft-current-tab') || 'hoje';
     state.connectionError = null;
     state.library = loaded.library;
+    state.foods = loaded.foods;
     state.diary = loaded.diary;
     
     // Inicializar expandedMeals com as refeições do dia atual

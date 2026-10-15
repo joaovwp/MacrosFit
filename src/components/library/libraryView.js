@@ -14,11 +14,12 @@ export function libraryViewHTML(state) {
   const standardList = (state.lib.standardFoods || []).filter((f) => {
     const matchesQuery = !q || normalize(f.name).includes(q);
     const matchesFilter = filter === 'all' ||
-      (filter === 'taco' && f.source === 'taco') ||
-      (filter === 'custom' && f.source === 'custom') ||
+      (filter === 'standard' && f.source === 'standard') ||
       (filter === 'supplement' && f.source === 'supplement');
     return matchesQuery && matchesFilter;
   }).sort((a, b) => a.name.localeCompare(b.name));
+
+  const displayList = standardList.length > 0 ? standardList.slice(0, 50) : standardList;
 
   return `<div style="display:flex;flex-direction:column;gap:16px">
     <div class="card" style="padding:16px">
@@ -32,8 +33,7 @@ export function libraryViewHTML(state) {
         <select id="lib-filter" class="input" style="width:140px">
           <option value="all" ${filter === 'all' ? 'selected' : ''}>Todos</option>
           <option value="user" ${filter === 'user' ? 'selected' : ''}>Meus</option>
-          <option value="taco" ${filter === 'taco' ? 'selected' : ''}>TACO</option>
-          <option value="custom" ${filter === 'custom' ? 'selected' : ''}>Adicionados</option>
+          <option value="standard" ${filter === 'standard' ? 'selected' : ''}>Padrão</option>
           <option value="supplement" ${filter === 'supplement' ? 'selected' : ''}>Suplementos</option>
         </select>
         <button class="btn btn-primary" data-action="lib-toggle-add">${icon("plus", 15)} Novo</button>
@@ -91,12 +91,12 @@ export function libraryViewHTML(state) {
         </div>
       </div>` : ""}
 
-      ${standardList.length > 0 ? `<div>
-        <div style="font-size:12px;font-weight:600;color:var(--textMuted);margin-bottom:8px">Alimentos padrão</div>
+      ${displayList.length > 0 ? `<div>
+        <div style="font-size:12px;font-weight:600;color:var(--textMuted);margin-bottom:8px">Alimentos padrão ${standardList.length > 50 ? `(mostrando 50 de ${standardList.length})` : `(${standardList.length})`}</div>
         <div class="card" style="padding:4px">
-          ${standardList.map((f) => {
-            const badge = f.source === 'supplement' ? 'Suplemento' : (f.source === 'custom' ? 'Adicionado' : 'TACO');
-            const badgeColor = f.source === 'supplement' ? 'var(--carbs)' : (f.source === 'custom' ? 'var(--calories)' : 'var(--protein)');
+          ${displayList.map((f) => {
+            const badge = f.source === 'supplement' ? 'Suplemento' : 'Padrão';
+            const badgeColor = f.source === 'supplement' ? 'var(--carbs)' : 'var(--protein)';
             return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--borderSoft)">
             <div style="flex:1">
               <div style="display:flex;align-items:center;gap:6px">
@@ -108,7 +108,6 @@ export function libraryViewHTML(state) {
           </div>`;
           }).join("")}
         </div>
-        ${!state.lib.showAll && state.lib.query ? `<button class="btn" style="width:100%;margin-top:8px;font-size:12px" data-action="lib-show-all">Ver todas as variações</button>` : ""}
       </div>` : ""}
 
       ${libraryList.length === 0 && standardList.length === 0 ? `<div class="card" style="padding:20px;text-align:center;color:var(--textFaint);font-size:13.5px">Nenhum alimento encontrado. Busque por nome ou adicione novos alimentos.</div>` : ""}
