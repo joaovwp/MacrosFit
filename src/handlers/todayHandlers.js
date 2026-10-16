@@ -8,6 +8,7 @@ import { render } from '../app/render.js';
 import { searchFoods } from '../utils/search.js';
 import { getState, showNotification } from '../state/state.js';
 import { handleError } from '../core/errorHandler.js';
+import { formatMacros } from '../core/macroUtils.js';
 
 let qaSearchTimeout = null;
 
@@ -199,6 +200,8 @@ export const todayHandlers = {
     getState().qa.grams = item.grams.toString();
     getState().qa.manualOpen = false;
     getState().qa.showSuggest = false;
+    getState().qa.editMacros = false;
+    getState().qa.editedMacros = { kcal: "", protein: "", carbs: "", fat: "" };
     render(getState());
   },
 
@@ -277,12 +280,7 @@ export const todayHandlers = {
       };
       const macrosEl = document.querySelector('[data-qa-computed-macros]');
       if (macrosEl) {
-        macrosEl.innerHTML = `
-          <span class="mono" style="color:var(--calories)">${esc(Math.round(computed.kcal))} kcal</span>
-          <span class="mono" style="color:var(--protein)">P ${esc(round(computed.protein))}g</span>
-          <span class="mono" style="color:var(--carbs)">C ${esc(round(computed.carbs))}g</span>
-          <span class="mono" style="color:var(--fat)">G ${esc(round(computed.fat))}g</span>
-        `;
+        macrosEl.textContent = formatMacros({ ...computed, grams: g }, true);
       }
     }
   },

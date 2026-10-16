@@ -2,6 +2,7 @@ import { icon } from '../../core/icons.js';
 import { esc, round } from '../../core/utils.js';
 import { MEAL_TYPES } from '../../core/constants.js';
 import { qaSuggestions, qaBasis, qaComputed } from '../../state/selectors.js';
+import { formatMacros } from '../../core/macroUtils.js';
 
 export function quickAddFormHTML(state) {
   const suggestions = state.qa.showSuggest ? qaSuggestions(state) : [];
@@ -78,13 +79,13 @@ export function quickAddFormHTML(state) {
           <input class="input" placeholder="gramas" type="number" value="${esc(state.qa.newFoodForm.grams)}" data-action="qa-new-food-input" data-field="grams"/>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" data-action="qa-new-food-submit" ${canSubmitNewFood ? "" : "disabled"}>Salvar e usar</button>
-          <button class="btn" data-action="qa-new-food-cancel">Cancelar</button>
+          <button class="btn btn-primary btn-sm" data-action="qa-new-food-submit" ${canSubmitNewFood ? "" : "disabled"}>Salvar e usar</button>
+          <button class="btn btn-sm" data-action="qa-new-food-cancel">Cancelar</button>
         </div>
       </div>
     ` : `
       <div style="display:flex;gap:8px;margin-bottom:10px">
-        <div style="position:relative;flex:2">
+        <div style="position:relative;flex:2;display:flex;flex-direction:column;gap:8px">
           <input id="qa-name" class="input" placeholder="Nome do alimento" value="${esc(state.qa.name)}" data-action="qa-name-input" autocomplete="off"/>
           ${suggestions.length ? `<div class="suggest">
             ${suggestions.map((f) => `<div class="suggest-item" data-action="qa-pick-suggestion" data-id="${f.id}" data-source="${f.source || 'user'}">
@@ -92,17 +93,22 @@ export function quickAddFormHTML(state) {
                 <span>${esc(f.name)}</span>
                 <span class="qa-badge qa-badge--${f.source === 'standard' || f.source === 'supplement' ? 'standard' : 'user'}">${f.source === 'standard' ? 'Padrão' : (f.source === 'supplement' ? 'Suplemento' : 'Meu')}</span>
               </div>
-              <span class="qa-suggestion-macros">${Math.round(f.kcal)} kcal (100g) · P ${round(f.protein)}g · C ${round(f.carbs)}g · G ${round(f.fat)}g</span>
+              <span class="qa-suggestion-macros">${formatMacros({ ...f, grams: 100 }, true)}</span>
             </div>`).join("")}
           </div>` : ""}
+          ${state.qa.name.trim() && !state.qa.newFoodMode && !state.qa.editMacros && !state.qa.manualOpen ? `
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" style="flex:1" data-action="qa-toggle-edit-macros">Editar macros por 100g</button>
+              <button class="btn btn-sm" style="flex:1" data-action="qa-open-manual">Cadastrar novo alimento</button>
+            </div>
+          ` : ""}
         </div>
-        <input id="qa-grams" class="input" placeholder="g" type="number" inputmode="decimal" style="flex:1" value="${esc(state.qa.grams)}" data-action="qa-grams-input"/>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <input id="qa-grams" class="input" placeholder="g" type="number" inputmode="decimal" value="${esc(state.qa.grams)}" data-action="qa-grams-input"/>
+        </div>
       </div>
-      ${computed ? `<div style="display:flex;gap:14px;font-size:12.5px;color:var(--textMuted);margin-bottom:10px;flex-wrap:wrap" data-qa-computed-macros>
-        <span class="mono" style="color:var(--calories)">${Math.round(computed.kcal)} kcal</span>
-        <span class="mono" style="color:var(--protein)">P ${round(computed.protein)}g</span>
-        <span class="mono" style="color:var(--carbs)">C ${round(computed.carbs)}g</span>
-        <span class="mono" style="color:var(--fat)">G ${round(computed.fat)}g</span>
+      ${computed ? `<div class="mono" style="font-size:12.5px;color:var(--textMuted);margin-bottom:10px" data-qa-computed-macros>
+        ${formatMacros({ ...computed, grams: parseFloat(state.qa.grams) }, true)}
       </div>` : ""}
       ${state.qa.name.trim() && !state.qa.newFoodMode ? `
         <div style="margin-bottom:10px">
@@ -126,8 +132,8 @@ export function quickAddFormHTML(state) {
                 <input class="input" placeholder="0" type="number" value="${esc(state.qa.editedMacros.fat)}" data-action="qa-edited-macros-input" data-field="fat" style="border-color:var(--fat)"/>
               </div>
             </div>
-            <a class="link" data-action="qa-toggle-edit-macros">Cancelar edição</a>
-          ` : `<a class="link" data-action="qa-toggle-edit-macros">Editar macros por 100g</a>`}
+            <button class="btn btn-sm" data-action="qa-toggle-edit-macros">Cancelar edição</button>
+          ` : ""}
         </div>
       ` : ""}
       ${!computed && state.qa.name.trim() ? (state.qa.manualOpen ? `<div style="margin-bottom:10px">
@@ -139,52 +145,44 @@ export function quickAddFormHTML(state) {
           <input class="input" placeholder="gord. g" type="number" value="${esc(state.qa.manual.fat)}" data-action="qa-manual-input" data-field="fat"/>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" data-action="qa-new-food-mode">Registrar alimento</button>
-          <button class="btn" data-action="qa-open-manual-cancel">Cancelar</button>
+          <button class="btn btn-primary btn-sm" data-action="qa-new-food-mode">Registrar alimento</button>
+          <button class="btn btn-sm" data-action="qa-open-manual-cancel">Cancelar</button>
         </div>
-      </div>` : `<div style="margin-bottom:10px"><a class="link" data-action="qa-open-manual">Não encontrou o alimento? Cadastrar novo</a></div>`) : ""}
+      </div>` : "") : ""}
       <div style="display:flex;align-items:center;gap:10px">
-        <button class="btn btn-primary" data-action="qa-add-item" ${canAddItem ? "" : "disabled"}>${icon("plus", 15)} ${isEditing ? "Atualizar" : "Adicionar"}</button>
-        ${isEditing ? `<button class="btn" data-action="qa-cancel-edit">${icon("x", 15)} Cancelar</button>` : ""}
+        <button class="btn btn-primary btn-sm" data-action="qa-add-item" ${canAddItem ? "" : "disabled"}>${icon("plus", 15)} ${isEditing ? "Atualizar" : "Adicionar"}</button>
+        ${isEditing ? `<button class="btn btn-sm" data-action="qa-cancel-edit">${icon("x", 15)} Cancelar</button>` : ""}
       </div>
     `}
 
     ${state.qa.currentMealItems.length > 0 ? `
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--borderSoft)">
         <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--textMuted)">Itens da refeição (${state.qa.currentMealItems.length})</div>
-        <div style="display:flex;gap:14px;font-size:12.5px;color:var(--textMuted);margin-bottom:10px;flex-wrap:wrap;padding:8px;background:var(--surface2);border-radius:6px">
-          <span class="mono" style="color:var(--calories)">${Math.round(state.qa.currentMealItems.reduce((sum, i) => sum + i.kcal, 0))} kcal</span>
-          <span class="mono" style="color:var(--protein)">P ${round(state.qa.currentMealItems.reduce((sum, i) => sum + i.protein, 0))}g</span>
-          <span class="mono" style="color:var(--carbs)">C ${round(state.qa.currentMealItems.reduce((sum, i) => sum + i.carbs, 0))}g</span>
-          <span class="mono" style="color:var(--fat)">G ${round(state.qa.currentMealItems.reduce((sum, i) => sum + i.fat, 0))}g</span>
+        <div class="mono" style="font-size:12.5px;color:var(--textMuted);margin-bottom:10px">
+          ${formatMacros(state.qa.currentMealItems.reduce((acc, i) => ({
+            kcal: acc.kcal + i.kcal,
+            protein: acc.protein + i.protein,
+            carbs: acc.carbs + i.carbs,
+            fat: acc.fat + i.fat
+          }), { kcal: 0, protein: 0, carbs: 0, fat: 0 }))}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
           ${state.qa.currentMealItems.map((item, index) => `
-            <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface2);border-radius:6px">
-              <div style="flex:1">
-                <div style="font-size:12px;font-weight:500">${esc(item.name)}</div>
-                <div style="font-size:11px;color:var(--textMuted)">
-                  <span class="mono">${Math.round(item.grams)}g</span>
-                  <span style="margin:0 4px">•</span>
-                  <span class="mono" style="color:var(--calories)">${Math.round(item.kcal)} kcal</span>
-                  <span style="margin:0 4px">•</span>
-                  <span class="mono" style="color:var(--protein)">P ${round(item.protein)}g</span>
-                  <span style="margin:0 4px">•</span>
-                  <span class="mono" style="color:var(--carbs)">C ${round(item.carbs)}g</span>
-                  <span style="margin:0 4px">•</span>
-                  <span class="mono" style="color:var(--fat)">G ${round(item.fat)}g</span>
-                </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--borderSoft)">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.name)}</div>
+                <div class="mono" style="font-size:10px;color:var(--textMuted);margin-top:1px">${formatMacros(item, true)}</div>
               </div>
-              <button class="btn btn-icon" data-action="qa-edit-temp-item" data-index="${index}">${icon("pencil", 14, "var(--textMuted)")}</button>
-              <button class="btn btn-icon" data-action="qa-remove-temp-item" data-index="${index}">${icon("trash", 14, "var(--error)")}</button>
+              <button class="btn btn-icon" data-action="qa-edit-temp-item" data-index="${index}">${icon("pencil", 12, "var(--textMuted)")}</button>
+              <button class="btn btn-icon" data-action="qa-remove-temp-item" data-index="${index}">${icon("trash", 12, "var(--error)")}</button>
             </div>
           `).join("")}
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" data-action="qa-save-meal" ${canSaveMeal && !state.qa.saving ? "" : "disabled"}>
+          <button class="btn btn-primary btn-sm" data-action="qa-save-meal" ${canSaveMeal && !state.qa.saving ? "" : "disabled"}>
             ${state.qa.saving ? 'Salvando...' : `${icon("check", 14)} Registrar refeição`}
           </button>
-          <button class="btn" data-action="qa-clear-meal">${icon("x", 14)} Limpar</button>
+          <button class="btn btn-sm" data-action="qa-clear-meal">${icon("x", 14)} Limpar</button>
         </div>
       </div>
     ` : ""}

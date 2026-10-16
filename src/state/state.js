@@ -27,7 +27,6 @@ export const initialState = {
     editMacros: false,
     editedMacros: { kcal: "", protein: "", carbs: "", fat: "" }
   },
-  entryEdit: { id: null, val: "" },
   trendMetric: "calories",
   lib: {
     query: "",

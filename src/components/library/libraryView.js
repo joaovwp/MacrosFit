@@ -1,5 +1,6 @@
 import { icon } from '../../core/icons.js';
 import { esc, normalize, round } from '../../core/utils.js';
+import { formatMacros } from '../../core/macroUtils.js';
 
 export function libraryViewHTML(state) {
   const q = normalize(state.lib.query);
@@ -36,7 +37,7 @@ export function libraryViewHTML(state) {
           <option value="standard" ${filter === 'standard' ? 'selected' : ''}>Padrão</option>
           <option value="supplement" ${filter === 'supplement' ? 'selected' : ''}>Suplementos</option>
         </select>
-        <button class="btn btn-primary" data-action="lib-toggle-add">${icon("plus", 15)} Novo</button>
+        <button class="btn btn-primary btn-sm" data-action="lib-toggle-add">${icon("plus", 15)} Novo</button>
       </div>
       ${state.lib.adding ? `<div class="card" style="padding:14px;margin-bottom:14px;background:var(--surface2)">
         ${state.lib.conversionWarning ? `<div style="background:var(--surface2);padding:8px;border-radius:6px;margin-bottom:12px;font-size:11px;color:var(--textMuted)">
@@ -70,10 +71,10 @@ export function libraryViewHTML(state) {
           <input class="input" placeholder="gramas" type="number" value="${esc(state.lib.form.grams)}" data-action="lib-form-input" data-field="grams"/>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary" data-action="lib-submit" ${state.lib.saving ? 'disabled' : ''}>
+          <button class="btn btn-primary btn-sm" data-action="lib-submit" ${state.lib.saving ? 'disabled' : ''}>
             ${state.lib.saving ? 'Salvando...' : (state.lib.editingId ? "Salvar alterações" : "Adicionar")}
           </button>
-          <button class="btn" data-action="lib-cancel-add">Cancelar</button>
+          <button class="btn btn-sm" data-action="lib-cancel-add">Cancelar</button>
         </div>
       </div>` : ""}
 
@@ -83,7 +84,7 @@ export function libraryViewHTML(state) {
           ${libraryList.map((f) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--borderSoft)">
             <div style="flex:1">
               <div style="font-size:13.5px;font-weight:600">${esc(f.name)}</div>
-              <div class="mono" style="font-size:11px;color:var(--textMuted);margin-top:2px">${Math.round(f.kcal)} kcal · P${round(f.protein)}g C${round(f.carbs)}g G${round(f.fat)}g /100g</div>
+              <div class="mono" style="font-size:11px;color:var(--textMuted);margin-top:2px">${formatMacros({ ...f, grams: 100 }, true)}</div>
             </div>
             <button class="btn btn-icon" data-action="lib-edit" data-id="${f.id}">${icon("pencil", 13)}</button>
             <button class="btn btn-icon btn-danger" data-action="lib-delete" data-id="${f.id}">${icon("trash", 13)}</button>
@@ -103,7 +104,7 @@ export function libraryViewHTML(state) {
                 <span style="font-size:13.5px;font-weight:600">${esc(f.name)}</span>
                 <span class="qa-badge" style="background:${badgeColor};color:white;font-size:10px;padding:2px 6px;border-radius:4px">${badge}</span>
               </div>
-              <div class="mono" style="font-size:11px;color:var(--textMuted);margin-top:2px">${Math.round(f.kcal)} kcal · P${round(f.protein)}g C${round(f.carbs)}g G${round(f.fat)}g /100g</div>
+              <div class="mono" style="font-size:11px;color:var(--textMuted);margin-top:2px">${formatMacros({ ...f, grams: 100 }, true)}</div>
             </div>
           </div>`;
           }).join("")}

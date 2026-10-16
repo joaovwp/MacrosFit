@@ -379,82 +379,6 @@ export async function saveCompleteMeal(state, date, mealType) {
   }
 }
 
-export async function deleteEntry(state, id) {
-  try {
-    await mealsApi.deleteMealItem(id);
-
-    // Remover do estado local (apenas cache, não persistir novamente)
-    // Buscar entry em todo o diary, não apenas no dia atual
-    let dateKeyStr = null;
-    for (const [key, day] of Object.entries(state.diary)) {
-      if (day.entries.some(e => e.id === id)) {
-        dateKeyStr = key;
-        break;
-      }
-    }
-
-    if (dateKeyStr && state.diary[dateKeyStr]) {
-      state.diary[dateKeyStr].entries = state.diary[dateKeyStr].entries.filter(e => e.id !== id);
-    }
-
-    state.connectionError = null;
-  } catch (e) {
-    const error = handleError(e, 'deleteMealItem');
-    state.connectionError = error.message;
-    throw error;
-  }
-}
-
-export async function editEntryGrams(state, id, newGrams) {
-  try {
-    // Encontrar entry para obter dados do alimento
-    let entry = null;
-    let dateKeyStr = todayKey();
-
-    for (const [key, day] of Object.entries(state.diary)) {
-      const found = day.entries.find(e => e.id === id);
-      if (found) {
-        entry = found;
-        dateKeyStr = key;
-        break;
-      }
-    }
-
-    if (!entry) throw new Error('Entry not found');
-
-    // Recalcular valores finais
-    let newValues;
-    if (entry.food_id && state.library[entry.food_id]) {
-      const food = state.library[entry.food_id];
-      newValues = calculateMacrosFromPer100(newGrams, food);
-    } else if (entry.per100) {
-      newValues = calculateMacrosFromPer100(newGrams, entry.per100);
-    } else {
-      throw new Error('Cannot recalculate: no per100 data available');
-    }
-
-    // Atualizar no banco
-    await mealsApi.updateMealItem(id, {
-      grams: newGrams,
-      ...newValues
-    });
-
-    // Atualizar estado local (apenas cache, não persistir novamente)
-    if (state.diary[dateKeyStr]) {
-      state.diary[dateKeyStr].entries = state.diary[dateKeyStr].entries.map(e => {
-        if (e.id !== id) return e;
-        return { ...e, grams: newGrams, ...newValues };
-      });
-    }
-
-    state.connectionError = null;
-  } catch (e) {
-    const error = handleError(e, 'editEntryGrams');
-    state.connectionError = error.message;
-    throw error;
-  }
-}
-
 export async function deleteFood(state, id) {
   try {
     await userFoodsApi.deleteUserFood(id);
@@ -894,6 +818,59 @@ export async function deleteMeal(state, mealId) {
     state.connectionError = null;
   } catch (e) {
     const error = handleError(e, 'deleteMeal');
+    state.connectionError = error.message;
+    throw error;
+  }
+}
+
+export async function loadMealForEdit(state, mealId, mealType, mealDate) {
+  try {
+    // Encontrar entries da refeição no diary
+    let mealEntries = [];
+    for (const [key, day] of Object.entries(state.diary)) {
+      if (key === mealDate) {
+        mealEntries = day.entries.filter(e => e.meal_id === mealId);
+        break;
+      }
+    }
+
+    if (mealEntries.length === 0) {
+      throw new Error('Refeição não encontrada');
+    }
+
+    // Limpar itens temporários atuais
+    clearTemporaryMealItems(state);
+
+    // Carregar itens da refeição no state.qa.currentMealItems
+    mealEntries.forEach(entry => {
+      state.qa.currentMealItems.push({
+        id: entry.id,
+        food_id: entry.food_id,
+        name: entry.name,
+        grams: entry.grams,
+        kcal: entry.kcal,
+        protein: entry.protein,
+        carbs: entry.carbs,
+        fat: entry.fat,
+        per100: entry.per100
+      });
+    });
+
+    // Definir mealType e targetDate
+    state.qa.mealType = mealType;
+    state.qa.targetDate = mealDate;
+
+    // Excluir a refeição do banco (será recriada ao salvar)
+    await mealsApi.deleteMeal(mealId);
+
+    // Remover do estado local
+    if (state.diary[mealDate]) {
+      state.diary[mealDate].entries = state.diary[mealDate].entries.filter(e => e.meal_id !== mealId);
+    }
+
+    state.connectionError = null;
+  } catch (e) {
+    const error = handleError(e, 'loadMealForEdit');
     state.connectionError = error.message;
     throw error;
   }

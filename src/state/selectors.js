@@ -23,6 +23,14 @@ export function qaBasis(state) {
   const standardExact = (state.qa.standardSuggestions || []).find((f) => normalize(f.name) === n);
   if (standardExact) return { kcal: standardExact.kcal, protein: standardExact.protein, carbs: standardExact.carbs, fat: standardExact.fat };
 
+  // Se estiver editando um item, usar o per100 do próprio item
+  if (state.qa.editingItemIndex !== null && state.qa.currentMealItems[state.qa.editingItemIndex]) {
+    const editingItem = state.qa.currentMealItems[state.qa.editingItemIndex];
+    if (normalize(editingItem.name) === n && editingItem.per100) {
+      return editingItem.per100;
+    }
+  }
+
   return null;
 }
 

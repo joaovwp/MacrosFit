@@ -15,7 +15,8 @@ export function searchFoods(foods, query) {
 
   const results = foods
     .map(f => {
-      const words = norm([f.name, ...f.aliases].join(' ')).split(/[\s,]+/);
+      const aliases = Array.isArray(f.aliases) ? f.aliases : [];
+      const words = norm([f.name, ...aliases].join(' ')).split(/[\s,]+/);
       if (!tokens.every(t => words.some(w => w.startsWith(t)))) return null;
       const bonus = norm(f.name).startsWith(tokens[0]) ? 10 : 0;
       const exactMatch = tokens.every((t, i) => {
