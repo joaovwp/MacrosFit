@@ -37,28 +37,6 @@ O **MacrosFit** é um rastreador nutricional pessoal desenvolvido para facilitar
 
 ---
 
-## Características Técnicas
-
-- **Frontend:** JavaScript puro (Vanilla JS), sem frameworks.
-- **Build Tool:** Vite.
-- **Backend & Banco de Dados:** Supabase (PostgreSQL).
-- **PWA:** Service Worker (suporte offline e instalável em dispositivos móveis).
-- **Deploy:** Vercel.
-- **Arquitetura:** Gerenciamento de estado centralizado, event delegation e re-renderização reativa.
-- **Interface:** Tema escuro nativo e design responsivo (mobile e desktop).
-
----
-
-## Estrutura do Banco de Dados
-
-- `profiles`: Armazena biometria e metas do usuário.
-- `meals`: Contém os registros de refeições por data.
-- `meal_items`: Detalha os itens alimentares de cada refeição.
-- `user_foods`: Alimentos criados e personalizados pelo usuário.
-- `foods`: Banco de dados oficial de alimentos (TACO e adições), versionado no repositório.
-
----
-
 ## Fluxo Principal de Uso
 
 1. Realizar login ou cadastro na plataforma.
