@@ -1,4 +1,4 @@
-const CACHE_NAME = 'macrosfit-v1';
+const CACHE_NAME = 'macrosfit-v__APP_VERSION__';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
