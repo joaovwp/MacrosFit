@@ -256,7 +256,7 @@ export const todayHandlers = {
           protein: f.protein_per_100,
           carbs: f.carbs_per_100,
           fat: f.fat_per_100,
-          source: f.source === 'padrão' ? 'standard' : f.source
+          source: f.source // já normalizado pelo mapper
         }));
       } else {
         getState().qa.standardSuggestions = [];

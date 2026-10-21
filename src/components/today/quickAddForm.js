@@ -88,10 +88,11 @@ export function quickAddFormHTML(state) {
         <div style="position:relative;flex:2;display:flex;flex-direction:column;gap:8px">
           <input id="qa-name" class="input" placeholder="Nome do alimento" value="${esc(state.qa.name)}" data-action="qa-name-input" autocomplete="off"/>
           ${suggestions.length ? `<div class="suggest">
-            ${suggestions.map((f) => `<div class="suggest-item" data-action="qa-pick-suggestion" data-id="${f.id}" data-source="${f.source || 'user'}">
+            ${suggestions.map((f) => `<div class="suggest-item" data-action="qa-pick-suggestion" data-id="${f.id}" data-source="${f.source}">
               <div class="qa-suggestion-header">
                 <span>${esc(f.name)}</span>
-                <span class="qa-badge qa-badge--${f.source === 'standard' || f.source === 'supplement' ? 'standard' : 'user'}">${f.source === 'standard' ? 'Padrão' : (f.source === 'supplement' ? 'Suplemento' : 'Meu')}</span>
+                <!-- Badge: user_foods (Meu) vs foods (Padrão) -->
+                <span class="qa-badge qa-badge--${f.source === 'user' ? 'user' : 'standard'}">${f.source === 'user' ? 'Meu' : 'Padrão'}</span>
               </div>
               <span class="qa-suggestion-macros">${formatMacros({ ...f, grams: 100 }, true)}</span>
             </div>`).join("")}

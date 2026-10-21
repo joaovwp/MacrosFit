@@ -5,7 +5,7 @@ import { setupEventHandlers } from './app/events.js';
 import { getCurrentUser, onAuthStateChange, signOut } from './api/auth.js';
 import { setupInactivityTracking, endSession } from './core/session.js';
 import { dateKey, emptyDay } from './core/utils.js';
-import { mapUserFoodFromDB } from './utils/mapper.js';
+import { mapUserFoodFromDB, mapFoodFromDB } from './utils/mapper.js';
 import { restoreUIState } from './core/uiState.js';
 import { groupEntriesByMealId } from './state/selectors.js';
 import { resetTabState } from './handlers/navigationHandlers.js';
@@ -76,7 +76,10 @@ async function loadData() {
     }
   });
 
-  return { profile, library, diary, foods };
+  // Convert foods (tabela padrão) usando mapper - source sempre 'standard'
+  const mappedFoods = foods.map(f => mapFoodFromDB(f));
+
+  return { profile, library, diary, foods: mappedFoods };
 }
 
 // Função para carregar perfil e dados do usuário

@@ -106,6 +106,8 @@ export function mapProfileToDB(profile) {
 }
 
 // Mapear user_food do Supabase (snake_case) para app (camelCase)
+// user_foods sempre tem source = 'user' (criado pelo usuário)
+// foods (tabela padrão) mantém source original do banco (TACO, manual, etc)
 export function mapUserFoodFromDB(food) {
   if (!food) return null;
 
@@ -117,6 +119,25 @@ export function mapUserFoodFromDB(food) {
     carbs: food.carbs_per_100,
     fat: food.fat_per_100,
     source: 'user'
+  };
+}
+
+// Mapear food (tabela padrão) do Supabase (snake_case) para app (camelCase)
+// Normaliza source: user_foods = 'user', foods = 'standard' (qualquer valor do banco)
+export function mapFoodFromDB(food) {
+  if (!food) return null;
+
+  return {
+    slug: food.slug,
+    name: food.name,
+    aliases: food.aliases,
+    category: food.category,
+    kcal_per_100: food.kcal_per_100,
+    protein_per_100: food.protein_per_100,
+    carbs_per_100: food.carbs_per_100,
+    fat_per_100: food.fat_per_100,
+    priority: food.priority,
+    source: 'standard' // foods da tabela padrão sempre são 'standard'
   };
 }
 

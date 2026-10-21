@@ -16,7 +16,7 @@ export function libraryViewHTML(state) {
     const matchesQuery = !q || normalize(f.name).includes(q);
     const matchesFilter = filter === 'all' ||
       (filter === 'standard' && f.source === 'standard') ||
-      (filter === 'supplement' && f.source === 'supplement');
+      (filter === 'user' && f.source === 'user');
     return matchesQuery && matchesFilter;
   }).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -35,7 +35,6 @@ export function libraryViewHTML(state) {
           <option value="all" ${filter === 'all' ? 'selected' : ''}>Todos</option>
           <option value="user" ${filter === 'user' ? 'selected' : ''}>Meus</option>
           <option value="standard" ${filter === 'standard' ? 'selected' : ''}>Padrão</option>
-          <option value="supplement" ${filter === 'supplement' ? 'selected' : ''}>Suplementos</option>
         </select>
         <button class="btn btn-primary btn-sm" data-action="lib-toggle-add">${icon("plus", 15)} Novo</button>
       </div>
@@ -96,13 +95,11 @@ export function libraryViewHTML(state) {
         <div style="font-size:12px;font-weight:600;color:var(--textMuted);margin-bottom:8px">Alimentos padrão ${standardList.length > 50 ? `(mostrando 50 de ${standardList.length})` : `(${standardList.length})`}</div>
         <div class="card" style="padding:4px">
           ${displayList.map((f) => {
-            const badge = f.source === 'supplement' ? 'Suplemento' : 'Padrão';
-            const badgeColor = f.source === 'supplement' ? 'var(--carbs)' : 'var(--protein)';
             return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--borderSoft)">
             <div style="flex:1">
               <div style="display:flex;align-items:center;gap:6px">
                 <span style="font-size:13.5px;font-weight:600">${esc(f.name)}</span>
-                <span class="qa-badge" style="background:${badgeColor};color:white;font-size:10px;padding:2px 6px;border-radius:4px">${badge}</span>
+                <span class="qa-badge qa-badge--${f.source === 'user' ? 'user' : 'standard'}">${f.source === 'user' ? 'Meu' : 'Padrão'}</span>
               </div>
               <div class="mono" style="font-size:11px;color:var(--textMuted);margin-top:2px">${formatMacros({ ...f, grams: 100 }, true)}</div>
             </div>

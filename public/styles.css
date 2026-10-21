@@ -100,7 +100,7 @@ body { font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; color
 .qa-suggestion-macros { font-size: 0.75rem; color: var(--textMuted); }
 .qa-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 999px; font-weight: 600; }
 .qa-badge--user { background: var(--calories); color: #17140A; }
-.qa-badge--standard { background: var(--surface); color: var(--textMuted); }
+.qa-badge--standard { background: #3D4454; color: white; }
 .cal-cell { min-height: 55px; border-radius: 6px; border: 1px solid var(--borderSoft); cursor: default; position: relative; background: none; padding: 0; font-family: inherit; }
 .cal-cell.has-data { cursor: pointer; }
 .cal-cell.has-data:hover { border-color: var(--calories); }
